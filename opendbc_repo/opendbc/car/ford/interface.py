@@ -33,7 +33,7 @@ class CarInterface(CarInterfaceBase):
 
     ret.radarUnavailable = Bus.radar not in DBC[candidate]
     ret.steerControlType = structs.CarParams.SteerControlType.angle
-    ret.steerActuatorDelay = 0.2
+    ret.steerActuatorDelay = 0.22 if dp_params & structs.DPFlags.FordBluePilot else 0.2
     ret.steerLimitTimer = 1.0
     ret.steerAtStandstill = True
 
@@ -50,6 +50,9 @@ class CarInterface(CarInterfaceBase):
     if CAN.main >= 4:
       cfgs.insert(0, get_safety_config(structs.CarParams.SafetyModel.noOutput))
     ret.safetyConfigs = cfgs
+    if dp_params & structs.DPFlags.FordBluePilot:
+      ret.flags |= int(FordFlags.BLUEPILOT)
+      ret.safetyConfigs[-1].safetyParam |= int(FordSafetyFlags.BLUEPILOT)
 
     ret.alphaLongitudinalAvailable = ret.radarUnavailable
     if alpha_long or not ret.radarUnavailable:

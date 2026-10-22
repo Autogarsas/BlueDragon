@@ -108,6 +108,57 @@ static bool ford_get_quality_flag_valid(const CANPacket_t *msg) {
   .inactive_angle_is_zero = true,                                                               \
 }
 
+#define FORD_BP_LIMITS(limit_lateral_acceleration) {                                               \
+  .max_angle = 1000,          /* 0.02 curvature */                                              \
+  .angle_deg_to_can = 50000,  /* 1 / (2e-5) rad to can */                                       \
+  .max_angle_error = 100,     /* 0.002 * FORD_STEERING_LIMITS.angle_deg_to_can */               \
+  .angle_rate_up_lookup = {                                                                     \
+    {5., 16., 25.},                                                                             \
+    {0.0026, 0.0013, 0.0001}                                                                   \
+  },                                                                                            \
+  .angle_rate_down_lookup = {                                                                   \
+    {5., 16., 25.},                                                                             \
+    {0.0026, 0.0015, 0.0002}                                                                 \
+  },                                                                                            \
+                                                                                                \
+  /* no blending at low speed due to lack of torque wind-up and inaccurate current curvature */ \
+  .angle_error_min_speed = 10.0,    /* m/s */                                                   \
+                                                                                                \
+  .angle_is_curvature = (limit_lateral_acceleration),                                           \
+  .enforce_angle_error = true,                                                                  \
+  .inactive_angle_is_zero = true,                                                               \
+}
+
+
+// BluePilot bp-5.0 curvature-primary limits. No reset-bypass latch is imported.
+static const AngleSteeringLimits FORD_BP_STEERING_LIMITS = FORD_BP_LIMITS(false);
+static const AngleSteeringLimits FORD_BP_CANFD_STEERING_LIMITS = FORD_BP_LIMITS(true);
+static bool ford_bluepilot = false;
+static int ford_bp_path_angle_last = 0;
+
+static bool ford_bp_extra_checks(int curvature, int path_angle, int path_offset, int curvature_rate,
+                                 bool steer_enabled, bool canfd) {
+  bool violation = false;
+  violation |= safety_max_limit_check(curvature, 600, -600);  // +/-0.012 m^-1
+  violation |= safety_max_limit_check(path_angle, 500, -500); // +/-0.25 rad
+  violation |= path_offset != 0;  // bp-5.0 always sends zero; never grant unused authority
+  violation |= safety_max_limit_check(curvature_rate, canfd ? 1023 : 4095, canfd ? -1024 : -4096);
+  if (!steer_enabled || !lat_control_allowed()) {
+    violation |= (path_angle != 0) || (curvature_rate != 0);
+    violation |= steer_enabled && !lat_control_allowed();
+  } else {
+    const struct lookup_t rate = {{5., 15., 25.}, {0.003, 0.0015, 0.002}};
+    const float speed = (vehicle_speed.min / VEHICLE_SPEED_FACTOR) - 1.;
+    const int delta = (safety_interpolate(rate, speed) * 2000.) + 1.;
+    violation |= safety_max_limit_check(path_angle, ford_bp_path_angle_last + delta, ford_bp_path_angle_last - delta);
+  }
+  // Rejected frames must not seed the next command's allowed rate.
+  if (!violation) {
+    ford_bp_path_angle_last = steer_enabled ? path_angle : 0;
+  }
+  return violation;
+}
+
 static const AngleSteeringLimits FORD_STEERING_LIMITS = FORD_LIMITS(false);
 
 static void ford_rx_hook(const CANPacket_t *msg) {
@@ -252,11 +303,22 @@ static bool ford_tx_hook(const CANPacket_t *msg) {
     unsigned int raw_path_offset = (msg->data[5] << 2) | (msg->data[6] >> 6);
 
     // These signals are not yet tested with the current safety limits
-    bool violation = (raw_curvature_rate != FORD_INACTIVE_CURVATURE_RATE) || (raw_path_angle != FORD_INACTIVE_PATH_ANGLE) || (raw_path_offset != FORD_INACTIVE_PATH_OFFSET);
+    bool violation = !ford_bluepilot && ((raw_curvature_rate != FORD_INACTIVE_CURVATURE_RATE) ||
+                      (raw_path_angle != FORD_INACTIVE_PATH_ANGLE) || (raw_path_offset != FORD_INACTIVE_PATH_OFFSET));
 
     // Check angle error and steer_control_enabled
     int desired_curvature = raw_curvature - FORD_INACTIVE_CURVATURE;  // /FORD_STEERING_LIMITS.angle_deg_to_can to get real curvature
-    violation |= steer_angle_cmd_checks(desired_curvature, steer_control_enabled, FORD_STEERING_LIMITS);
+    const int previous_bp_path_angle = ford_bp_path_angle_last;
+    if (ford_bluepilot) {
+      violation |= ford_bp_extra_checks(desired_curvature, (int)raw_path_angle - FORD_INACTIVE_PATH_ANGLE,
+                                        (int)raw_path_offset - FORD_INACTIVE_PATH_OFFSET,
+                                        (int)raw_curvature_rate - FORD_INACTIVE_CURVATURE_RATE, steer_control_enabled, false);
+    }
+    violation |= steer_angle_cmd_checks(desired_curvature, steer_control_enabled,
+                                       ford_bluepilot ? FORD_BP_STEERING_LIMITS : FORD_STEERING_LIMITS);
+    if (violation) {
+      ford_bp_path_angle_last = previous_bp_path_angle;
+    }
 
     if (violation) {
       tx = false;
@@ -275,11 +337,22 @@ static bool ford_tx_hook(const CANPacket_t *msg) {
     unsigned int raw_path_offset = ((msg->data[4] & 0x3U) << 8) | msg->data[5];
 
     // These signals are not yet tested with the current safety limits
-    bool violation = (raw_curvature_rate != FORD_CANFD_INACTIVE_CURVATURE_RATE) || (raw_path_angle != FORD_INACTIVE_PATH_ANGLE) || (raw_path_offset != FORD_INACTIVE_PATH_OFFSET);
+    bool violation = !ford_bluepilot && ((raw_curvature_rate != FORD_CANFD_INACTIVE_CURVATURE_RATE) ||
+                      (raw_path_angle != FORD_INACTIVE_PATH_ANGLE) || (raw_path_offset != FORD_INACTIVE_PATH_OFFSET));
 
     // Check angle error and steer_control_enabled
     int desired_curvature = raw_curvature - FORD_INACTIVE_CURVATURE;  // /FORD_STEERING_LIMITS.angle_deg_to_can to get real curvature
-    violation |= steer_angle_cmd_checks(desired_curvature, steer_control_enabled, FORD_CANFD_STEERING_LIMITS);
+    const int previous_bp_path_angle = ford_bp_path_angle_last;
+    if (ford_bluepilot) {
+      violation |= ford_bp_extra_checks(desired_curvature, (int)raw_path_angle - FORD_INACTIVE_PATH_ANGLE,
+                                        (int)raw_path_offset - FORD_INACTIVE_PATH_OFFSET,
+                                        (int)raw_curvature_rate - FORD_CANFD_INACTIVE_CURVATURE_RATE, steer_control_enabled, true);
+    }
+    violation |= steer_angle_cmd_checks(desired_curvature, steer_control_enabled,
+                                       ford_bluepilot ? FORD_BP_CANFD_STEERING_LIMITS : FORD_CANFD_STEERING_LIMITS);
+    if (violation) {
+      ford_bp_path_angle_last = previous_bp_path_angle;
+    }
 
     if (violation) {
       tx = false;
@@ -291,6 +364,8 @@ static bool ford_tx_hook(const CANPacket_t *msg) {
 
 static safety_config ford_init(uint16_t param) {
   alka_allowed = true;  // dp - ALKA enabled for Ford
+  ford_bluepilot = GET_FLAG(param, 4U);
+  ford_bp_path_angle_last = 0;
 
   // warning: quality flags are not yet checked in openpilot's CAN parser,
   // this may be the cause of blocked messages

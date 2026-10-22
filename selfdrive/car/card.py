@@ -104,6 +104,9 @@ class Car:
         with car.CarParams.from_bytes(cached_params_raw) as _cached_params:
           cached_params = _cached_params
 
+      if not self.params.get_bool("dp_ford_bp_disable"):
+        dp_params |= structs.DPFlags.FordBluePilot
+
       if self.params.get_bool("dp_lat_alka"):
         dp_params |= structs.DPFlags.LatALKA
 
@@ -134,6 +137,11 @@ class Car:
     else:
       self.CI, self.CP = CI, CI.CP
       self.RI = RI
+
+    self.ford_bp = None
+    if self.CP.brand == "ford" and self.CI.CC is not None and self.CI.CC.bp_lateral is not None:
+      from dragonpilot.selfdrive.car.ford_bluepilot import FordBluePilotAdapter
+      self.ford_bp = FordBluePilotAdapter(self.CI.CC, self.params)
 
     if self.params.get_bool("dp_lon_ext_radar"):
       from opendbc.car.radar_interface import RadarInterface
@@ -275,6 +283,8 @@ class Car:
     if self.sm.all_alive(['carControl']):
       # send car controls over can
       now_nanos = self.can_log_mono_time if REPLAY else int(time.monotonic() * 1e9)
+      if self.ford_bp is not None:
+        self.ford_bp.update()
       self.last_actuators_output, can_sends = self.CI.apply(CC, now_nanos)
       self.pm.send('sendcan', can_list_to_can_capnp(can_sends, msgtype='sendcan', valid=CS.canValid))
 
