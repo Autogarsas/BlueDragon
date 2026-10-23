@@ -1,0 +1,29 @@
+{
+  "target": "comma 3X / TRES / STM32H725 H7",
+  "source_commit": "f95cbde6532c5f1acf22f1bd020aa2e4079aef9e",
+  "source_tree": "03aee5a04b18543e738e4bb89870f3da1243f67b",
+  "build_command": "scons -C panda -j2 board/obj/panda_h7.bin.signed",
+  "compiler": "GNU Arm Embedded GCC 13.2.1",
+  "build_version": "DEV-f95cbde6-DEBUG",
+  "firmware_bytes": 72188,
+  "firmware_sha256": "9e9594633dcbd4a63af8e5028c54a870e44553d53773c662b33540f4179b71ce",
+  "firmware_signature_prefix": "9a428b52a93e508a",
+  "existing_stock_sha256": "c9adb434907e22ea82e0f40f358e10263cefe0328421cff7d9eb367da9cfd9ca",
+  "checksums": {
+    "panda/board/health.h": "e29d3ff65b426b17000b06334589924a701adf42bc8e585e522ae57bed7832a0",
+    "panda/board/jungle/jungle_health.h": "b76799a36e0cebfc736803e163df58e79e7b0a3ae02794d7233ba3678541537c",
+    "panda/python/constants.py": "aedb349236a89e58e90891dcd05627f6a4558d69832f49b055417e2520e72fdb",
+    "panda/board/certs/debug.pub": "98be6f5fd87ab61c51e91991628d6d9f0b3fd1ef448176e5610a55f18fd4e301",
+    "opendbc_repo/opendbc/safety/can.h": "604745d2af118f1ec71519f7c68566bb846e323652828e169b6d99ee018cfe52",
+    "opendbc_repo/opendbc/safety/modes/ford.h": "bd0994af5e896f251c9de6fc67e28f8777beb0758cfd0fc946cbf1f87d83fbb1",
+    "opendbc_repo/opendbc/safety/lateral.h": "f87ffc02e58f46a6dfce21eec17b510fba160b3bd09524b2090cc1433c87e80e",
+    "opendbc_repo/opendbc/safety/safety.h": "934e4477271d714699b5c0bbc3fad331245868d1a08b2b55c9b2e795d55f81d2"
+  },
+  "validation": {
+    "tests_run": 216,
+    "passed": 196,
+    "skipped": 20,
+    "hardware_flash_tested": false,
+    "note": "Native controller/safety tests include CAN, CAN-FD, ALKA permissions, bounds and reset-bypass rejection. No road-test claim."
+  }
+}

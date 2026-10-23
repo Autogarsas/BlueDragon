@@ -113,6 +113,43 @@ class BluePilotSafetyMixin:
     self.safety.set_controls_allowed(True)
     self.assertFalse(self._tx(self._lat_ctl_msg(True, 0, 0.1, 0, 0)))
 
+  def test_alka_requires_setting_main_switch_and_motion(self):
+    for alternative in (0, 1024):  # ALT_EXP_ALKA
+      for main_on in (False, True):
+        for speed in (0.0, 5.0):
+          self.setUp()
+          self.safety.set_alternative_experience(alternative)
+          self._reset_curvature_measurement(0, speed)
+          self.assertTrue(self._rx(self._vehicle_moving_msg(speed)))
+          status = self.packer.make_can_msg_safety("EngBrakeData", 0, {
+            "BpedDrvAppl_D_Actl": 1, "CcStat_D_Actl": 3 if main_on else 0,
+          })
+          self.assertTrue(self._rx(status))
+          self.assertFalse(self.safety.get_controls_allowed())
+          expected = bool(alternative and main_on and speed > 0)
+          self.assertEqual(expected, self.safety.get_lat_control_allowed())
+          self.assertEqual(expected, self._tx(self._lat_ctl_msg(True, 0, 0, 0.0001, 0.0001)))
+
+  def test_alka_preserves_limits_and_main_switch_disables_steering(self):
+    self.safety.set_alternative_experience(1024)
+    self._reset_curvature_measurement(0, 5.0)
+    self.assertTrue(self._rx(self._vehicle_moving_msg(5.0)))
+    status = self.packer.make_can_msg_safety("EngBrakeData", 0, {
+      "BpedDrvAppl_D_Actl": 1, "CcStat_D_Actl": 3,
+    })
+    self.assertTrue(self._rx(status))
+    self.assertFalse(self.safety.get_controls_allowed())
+    self.assertTrue(self._tx(self._lat_ctl_msg(True, 0, 0, 0.0001, 0.0001)))
+    self.assertFalse(self._tx(self._lat_ctl_msg(True, 0, 0, 0.01, 0)))
+    self.assertFalse(self._tx(self._lat_ctl_msg(True, 0, 0.2, 0, 0)))
+    self.assertFalse(self._tx(self._lat_ctl_msg(True, 0.1, 0, 0, 0)))
+    status = self.packer.make_can_msg_safety("EngBrakeData", 0, {
+      "BpedDrvAppl_D_Actl": 1, "CcStat_D_Actl": 0,
+    })
+    self.assertTrue(self._rx(status))
+    self.assertFalse(self.safety.get_lat_control_allowed())
+    self.assertFalse(self._tx(self._lat_ctl_msg(True, 0, 0, 0.0001, 0)))
+
 
 class TestFordBluePilotCAN(BluePilotSafetyMixin, stock.TestFordLongitudinalSafety):
   PARAM = 0
