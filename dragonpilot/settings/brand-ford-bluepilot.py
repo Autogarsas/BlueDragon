@@ -2,13 +2,13 @@ from dragonpilot.settings import tr
 
 ITEMS = [
   {
-    "section": "BluePilot Ford Steering", "key": "dp_ford_bp_disable", "type": "toggle_item",
+    "section": "Ford Steering (BluePilot)", "key": "dp_ford_bp_disable", "type": "toggle_item",
     "title": lambda: tr("Disable BluePilot Steering"),
     "description": lambda: tr("Use dragonpilot's stock Ford controller. Restart required; controller and safety mode change together."),
     "flags": "PERSISTENT", "param_type": "BOOL", "default": "0", "brands": ["ford"],
   },
   {
-    'section': 'BluePilot Ford Steering',
+    'section': 'Ford Steering (BluePilot)',
     'key': 'dp_ford_bp_enable_human_turn_detection',
     'type': 'toggle_item',
     'flags': 'PERSISTENT',
@@ -18,7 +18,7 @@ ITEMS = [
     "title": lambda: tr('Human Turn Detection'),
   },
   {
-    'section': 'BluePilot Ford Steering',
+    'section': 'Ford Steering (BluePilot)',
     'key': 'dp_ford_bp_lane_change_factor_high',
     'type': 'double_spin_button_item',
     'flags': 'PERSISTENT',
@@ -31,7 +31,7 @@ ITEMS = [
     "title": lambda: tr('Lane Change Factor'),
   },
   {
-    'section': 'BluePilot Ford Steering',
+    'section': 'Ford Steering (BluePilot)',
     'key': 'dp_ford_bp_pc_blend_ratio_high_c_u_i',
     'type': 'double_spin_button_item',
     'flags': 'PERSISTENT',
@@ -44,7 +44,7 @@ ITEMS = [
     "title": lambda: tr('Predicted Curvature Blend — Curves'),
   },
   {
-    'section': 'BluePilot Ford Steering',
+    'section': 'Ford Steering (BluePilot)',
     'key': 'dp_ford_bp_pc_blend_ratio_low_c_u_i',
     'type': 'double_spin_button_item',
     'flags': 'PERSISTENT',
@@ -57,7 +57,7 @@ ITEMS = [
     "title": lambda: tr('Predicted Curvature Blend — Straights'),
   },
   {
-    'section': 'BluePilot Ford Steering',
+    'section': 'Ford Steering (BluePilot)',
     'key': 'dp_ford_bp_enable_lane_positioning',
     'type': 'toggle_item',
     'flags': 'PERSISTENT',
@@ -67,7 +67,7 @@ ITEMS = [
     "title": lambda: tr('Lane Positioning'),
   },
   {
-    'section': 'BluePilot Ford Steering',
+    'section': 'Ford Steering (BluePilot)',
     'key': 'dp_ford_bp_custom_path_offset',
     'type': 'double_spin_button_item',
     'flags': 'PERSISTENT',
@@ -80,7 +80,7 @@ ITEMS = [
     "title": lambda: tr('In-Lane Offset'),
   },
   {
-    'section': 'BluePilot Ford Steering',
+    'section': 'Ford Steering (BluePilot)',
     'key': 'dp_ford_bp_path_offset_lookup_time',
     'type': 'double_spin_button_item',
     'flags': 'PERSISTENT',
@@ -93,7 +93,7 @@ ITEMS = [
     "title": lambda: tr('Lane Positioning Lookahead'),
   },
   {
-    'section': 'BluePilot Ford Steering',
+    'section': 'Ford Steering (BluePilot)',
     'key': 'dp_ford_bp_enable_lane_full_mode',
     'type': 'toggle_item',
     'flags': 'PERSISTENT',
@@ -103,7 +103,7 @@ ITEMS = [
     "title": lambda: tr('Use Lane Lines for Positioning'),
   },
   {
-    'section': 'BluePilot Ford Steering',
+    'section': 'Ford Steering (BluePilot)',
     'key': 'dp_ford_bp_custom_profile',
     'type': 'toggle_item',
     'flags': 'PERSISTENT',
@@ -113,7 +113,7 @@ ITEMS = [
     "title": lambda: tr('Use Custom Tuning Profile'),
   },
   {
-    'section': 'BluePilot Ford Steering',
+    'section': 'Ford Steering (BluePilot)',
     'key': 'dp_ford_bp_l_c_p_i_d_gain_u_i',
     'type': 'double_spin_button_item',
     'flags': 'PERSISTENT',

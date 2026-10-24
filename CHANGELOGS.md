@@ -1,3 +1,12 @@
+BlueDragon 1.0 (2026-10-24)
+=========================
+* Based on dragonpilot 0.11.1, with Ford steering adapted from BluePilot bp-5.0.
+* Preserves the current curvature controller, tuning defaults, driving model and longitudinal behavior.
+* Includes the repaired parameter bindings and the matching H7 Panda application.
+* BlueDragon name and upstream credits appear on the device and in the project documentation.
+* Credits: dragonpilot/Rick Lan and community; BluePilot; sunnypilot; comma.ai/openpilot/opendbc.
+* The bp-7.0 angle controller and its reset safety bypass are not included.
+
 dragonpilot 0.11.1 r1 (2026-06-22)
 =======================
 * ✅ openpilot 0.11.1 (devel-staging) (2026-06-05)

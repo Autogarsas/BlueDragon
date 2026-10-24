@@ -1,3 +1,9 @@
+> Historical SSH repair workflow. BlueDragon 1.0 now includes this exact H7
+> application in its normal installation path and includes the repaired Params
+> library. The older ford-bluepilot branches still use the workflow below.
+> The H7 image was subsequently flashed and its running signature verified on
+> the owner's comma 3X; the renamed package still needs a fresh-install check.
+
 # H7 application repair for the Ford bp-5.0 port
 
 The original prebuilt package kept stock Panda applications even though its Ford

@@ -56,9 +56,9 @@ class DragonpilotLayout(Widget):
     self._load_settings()
 
     self._reset_dp_conf_btn = button_item(
-      lambda: tr("Reset DP Settings"),
+      lambda: tr("Reset BlueDragon Settings"),
       lambda: tr("RESET"),
-      lambda: tr("Reset dragonpilot settings to default and restart the device."),
+      lambda: tr("Reset BlueDragon's dragonpilot and Ford settings to default and restart the device."),
       callback=self._reset_dp_conf)
     self._toggles['btn_reset_dp_conf'] = self._reset_dp_conf_btn
 

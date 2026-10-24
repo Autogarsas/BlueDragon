@@ -10,6 +10,7 @@ from openpilot.system.ui.widgets.confirm_dialog import ConfirmDialog
 from openpilot.system.ui.widgets.list_view import button_item, text_item, ListItem
 from openpilot.system.ui.widgets.option_dialog import MultiOptionDialog
 from openpilot.system.ui.widgets.scroller_tici import Scroller
+from dragonpilot.bluedragon import DISPLAY_NAME, CREDITS, ACKNOWLEDGMENT
 
 # TODO: remove this. updater fails to respond on startup if time is not correct
 UPDATED_TIMEOUT = 10  # seconds to wait for updated to respond
@@ -72,6 +73,10 @@ class SoftwareLayout(Widget):
 
     self._scroller = Scroller([
       self._onroad_label,
+      text_item(DISPLAY_NAME, CREDITS,
+                "Based on dragonpilot 0.11.1, with Ford steering adapted from BluePilot bp-5.0. "
+                "Thanks to Rick Lan and the dragonpilot community, BluePilot contributors, "
+                "sunnypilot, and comma.ai/openpilot/opendbc contributors. " + ACKNOWLEDGMENT),
       self._version_item,
       self._download_btn,
       self._install_btn,

@@ -1,14 +1,16 @@
-# BluePilot bp-5.0 Ford steering port — development draft
+# BlueDragon 1.0 — preserved bp-5.0 Ford steering port
 
 Target: dragonpilot 0.11.1, base 3e8edb7e3d6d8fb0393f0604ee3954ee328857f5.
 Source: BluePilotDev/bluepilot bp-5.0, c6f8350f17c0622d7a075fe03ae760425e68fd2c.
-Intended hardware: comma 3X. Not built or validated on that hardware.
+Hardware checked: comma 3X / TRES / H7 on the owner's retrofitted Fusion using Edge MK2.
+The owner reports the repaired baseline works well. The renamed installation
+package still needs a fresh-install/device-UI check; see the root README.
 
 ## Scope
 
 Ports the curvature-primary Ford lateral calculations: predicted/actuator curvature blending, rate tables, lane-change scaling, optional path-angle lane positioning, and effective custom settings. Adds the bp-5.0 Edge MK2 platform and firmware definitions, gear signal, and alternate steering-angle reference. The existing dragonpilot vehicle-model collector discovers the new platform; a second vehicle selector is not included.
 
-The BluePilot Ford Steering section exposes defaults and tuning. Predicted-curvature blend is 0.4, high-speed lane-change factor 0.85, human-turn detection enabled, lane positioning and custom profile disabled. Blend sliders require the custom profile. Positioning controls require lane positioning. The disable switch requires a restart and pairs the stock controller with stock safety mode. This draft enables the port by default on Ford.
+The Ford Steering (BluePilot) section exposes defaults and tuning. Predicted-curvature blend is 0.4, high-speed lane-change factor 0.85, human-turn detection enabled, lane positioning and custom profile disabled. Blend sliders require the custom profile. Positioning controls require lane positioning. The disable switch requires a restart and pairs the stock controller with stock safety mode. This version enables the port by default on Ford.
 
 The existing dragonpilot longitudinal controller, cruise buttons, and HUD remain in place. This is not bp-7.0 angle steering, and does not include unrelated BluePilot UI, portal, themes, or inactive tuning controls. No claim is made that all BluePilot driving behavior is reproduced: model and planner versions differ.
 
@@ -33,17 +35,27 @@ Synthetic sinusoidal command sequences cover six speeds (5, 10, 16, 20, 25, 35 m
 
 New Python files pass Ruff. Settings keys were regenerated. These checks do not establish safety of combined curvature, curvature-rate, and path-angle authority.
 
-## Release blockers
+## Packaging and remaining validation
 
-This is a source-review draft, not an installation release. Before deployment:
-1. Confirm the actual vehicle year, trim, market, harness, and reason for selecting the Edge profile. Selecting Edge is not proof of compatibility with a different Ford.
-2. Complete a clean comma 3X build, including regenerated parameter bindings and Panda firmware, and verify the settings UI/vehicle selector on device.
-3. Replay representative recordings from the user's working bp-5.0 setup; compare steering output, safety rejections, engagement transitions, sensor validity, and model timing. The change to reset behavior particularly needs validation.
-4. Review combined auxiliary steering authority and applicable vehicle limits with an experienced Ford/Panda maintainer. Verify ALKA and all relevant disable/override paths.
-5. Only after review and bench validation, plan supervised controlled-environment testing and rollback.
+BlueDragon 1.0 preserves the existing driving code and defaults. It adds branding,
+credits, an ARM CPython 3.12 parameter library containing all 168 declared keys,
+and the matching signed H7 image in the normal installation path. Provenance and
+checksums are recorded in `tools/ford_bluepilot/release.json`.
 
-No device was flashed and no repository was published. Keep the working bp-5.0 installation unchanged while reviewing this draft.
+The targeted parameter repair ran successfully on the device. The packaged
+cross-built equivalent passed isolated key/storage checks under ARM Python 3.12
+via QEMU. The exact packaged H7 image was flashed on the device and its running
+signature matched `9a428b52a93e508a`. The owner subsequently reported good Ford
+behavior. Those checks do not constitute a clean full-system build, independent
+vehicle-dynamics validation, or a fresh install of this renamed package.
+
+Remaining work includes checking the renamed UI and fresh installation on the
+device, representative recorded-route replay, and review of combined auxiliary
+steering authority. Other vehicles, retrofits, and non-H7 hardware are unverified.
+The bp-7.0 angle controller is not part of this version.
 
 ## Attribution
 
-Adapted from openpilot and BluePilot contributors under the repository MIT license; see LICENSE. Source commit above identifies the original implementation.
+Adapted from BluePilot, sunnypilot, openpilot, and opendbc contributors. See
+CREDITS.md, LICENSE, LICENSE.md, and LICENSE_BLUEPILOT.md; the included components
+do not all share one license. Source commits above identify the original work.

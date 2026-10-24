@@ -1,0 +1,14 @@
+{
+  "source_url": "https://installer.comma.ai/Autogarsas/bluedragon-1.0",
+  "source_user_agent": "AGNOSSetup",
+  "source_sha256": "f1dbcf91d20b47d9ce69a9545760a9700213e4065a0bb69fc23a19979f82f451",
+  "output_sha256": "07c5e5743a878d54c655a1309c72a87db44fa94a47bc85308516baa6e0d666d1",
+  "bytes": 1270680,
+  "architecture": "aarch64 ELF64",
+  "repository": "https://github.com/Autogarsas/BlueDragon.git",
+  "branch": "bluedragon-1.0",
+  "parameter_buffer_offset": 957092,
+  "parameter_buffer_bytes": 105,
+  "change": "Only the existing padded repository URL parameter is changed. The branch and executable size are unchanged. No executable instructions are modified.",
+  "source_reference": "dragonpilot/dragonpilot c0ab3550eca2e9daf197c46b7e4b24aa9637cf2e selfdrive/ui/installer/installer.cc documents the padded GIT_URL fork-installer parameter."
+}

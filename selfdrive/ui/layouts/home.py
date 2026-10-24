@@ -231,7 +231,8 @@ class HomeLayout(Widget):
     self._prev_alerts_present = alerts_present
 
   def _get_version_text(self) -> str:
-    brand = "dragonpilot"
+    from dragonpilot.bluedragon import DISPLAY_NAME
+    brand = DISPLAY_NAME
     if LITE:
       if "TICI_TRES" in os.environ:
         device_type = " - XLite"

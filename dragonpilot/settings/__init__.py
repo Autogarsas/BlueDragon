@@ -49,7 +49,7 @@ SECTION_ORDER = [
   "HKG",
   "VAG",
   "Mazda",
-  "BluePilot Ford Steering",
+  "Ford Steering (BluePilot)",
   "Lateral",
   "Longitudinal",
   "UI",
@@ -63,7 +63,7 @@ SECTION_ORDER = [
 # current car's brand doesn't match. Generic sections (Lateral/UI/...) are
 # unconditional.
 SECTION_CONDITIONS = {
-  "BluePilot Ford Steering": "brand == 'ford'",
+  "Ford Steering (BluePilot)": "brand == 'ford'",
   "Toyota / Lexus": "brand == 'toyota'",
   "Honda":          "brand == 'honda'",
   "HKG":            "brand == 'hyundai'",
