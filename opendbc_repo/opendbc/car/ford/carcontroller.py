@@ -105,6 +105,14 @@ class CarController(CarControllerBase):
     if (self.frame % CarControllerParams.STEER_STEP) == 0:
       if self.bp_lateral is not None:
         lat = self.bp_lateral.update(CC, CS, self.bp_model)
+        self.bp_lateral.diagnostics.update(
+          controller_frame=int(self.frame), command_time_nanos=int(now_nanos),
+          lat_active=bool(CC.latActive), command_active=bool(lat.active),
+          actuator_curvature=float(actuators.curvature), speed_mps=float(CS.out.vEgoRaw),
+          steering_pressed=bool(CS.out.steeringPressed), steering_angle_deg=float(CS.out.steeringAngleDeg),
+          steer_fault_temporary=bool(CS.out.steerFaultTemporary), steer_fault_permanent=bool(CS.out.steerFaultPermanent),
+          output_curvature=float(lat.curvature), output_path_angle=float(lat.path_angle),
+          output_curvature_rate=float(lat.curvature_rate))
         self.apply_curvature_last = lat.curvature
         if self.CP.flags & FordFlags.CANFD:
           counter = (self.frame // CarControllerParams.STEER_STEP) % 0x10

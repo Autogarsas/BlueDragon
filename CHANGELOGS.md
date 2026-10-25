@@ -1,3 +1,8 @@
+BlueDragon 1.1-dev1 — diagnostic stage
+===================================
+* Add bounded Ford host steering diagnostics and recorded-log summaries.
+* Preserve 1.0 steering, tuning, safety sources and firmware binaries.
+
 BlueDragon 1.0 (2026-10-24)
 =========================
 * Based on dragonpilot 0.11.1, with Ford steering adapted from BluePilot bp-5.0.

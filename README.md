@@ -1,4 +1,4 @@
-# BlueDragon 1.0
+# BlueDragon 1.1-dev1 — steering diagnostics
 
 **dragonpilot features with BluePilot Ford steering.**
 
@@ -10,18 +10,15 @@ the driving behavior of the repaired setup reported working by its owner.
 
 - **`bluedragon-1.0`** preserves the current Ford baseline, with the parameter
   library repair and matching H7 Panda application included in the package.
-- **`bluedragon-dev`** is reserved for future development. It starts from the
-  same version; no bp-7.0 features have been added yet.
-- The previous `ford-bluepilot-*` branches remain available for history and
-  the original SSH repair workflows.
+- **`bluedragon-dev`** adds observational Ford steering diagnostics. It keeps
+  the current controller behavior; no BP7 control changes are included.
 
-Install the preserved version using the comma custom-software installer:
+See [Stage 1 diagnostics](docs/FORD_DIAGNOSTICS_STAGE1.md) for validation and
+baseline logging instructions. Development installer:
 
-**https://raw.githubusercontent.com/Autogarsas/BlueDragon/bluedragon-1.0/installer/bluedragon-1.0**
+**https://raw.githubusercontent.com/Autogarsas/BlueDragon/bluedragon-dev/installer/bluedragon-dev**
 
-This installer explicitly clones `Autogarsas/BlueDragon`, rather than the
-`openpilot` repository assumed by comma's standard owner/branch installer.
-The original fork remains separate.
+The stable installer remains available on the `bluedragon-1.0` branch.
 
 Hardware verification so far covers a comma 3X / TRES / H7. The owner uses a
 retrofitted 2019 Fusion Hybrid with the Ford Edge MK2 profile. This is a report

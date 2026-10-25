@@ -29,19 +29,27 @@ class LateralCommand:
   precision_type: int = 1
 
 
-def apply_ford_curvature_limits(requested, last, measured, speed, CP):
+def apply_ford_curvature_limits(requested, last, measured, speed, CP, diagnostics=None):
+  before_deviation = requested
   if speed > 9:
     requested = clip(requested, measured - CarControllerParams.CURVATURE_ERROR, measured + CarControllerParams.CURVATURE_ERROR)
   result = apply_std_steer_angle_limits(requested, last, speed, 0, True, BP_ANGLE_LIMITS)
+  if diagnostics is not None:
+    diagnostics["deviation_limited"] = bool(requested != before_deviation)
+    diagnostics["curvature_rate_limited"] = bool(result != requested)
+  before_accel = result
   if CP.flags & FordFlags.CANFD:
     limit = (3.0 - 9.81 * 0.06) / max(speed, 1) ** 2
     result = clip(result, -limit, limit)
+  if diagnostics is not None:
+    diagnostics["lateral_accel_limited"] = bool(result != before_accel)
   return float(result)
 
 
 class BluePilotLateral:
   def __init__(self, CP):
     self.CP = CP
+    self.diagnostics = {"sequence": 0}
     # Initialize control variables
     self.apply_curvature_last = 0
     self.accel = 0.0
@@ -249,8 +257,17 @@ class BluePilotLateral:
     return LateralCommand()
 
   def update(self, CC, CS, model):
+    # Observation only: diagnostic values never feed command calculations.
+    self.diagnostics = {"sequence": self.diagnostics["sequence"] + 1, "reason": "inactive",
+                        "deviation_limited": False, "curvature_rate_limited": False,
+                        "lateral_accel_limited": False, "curvature_magnitude_limited": False,
+                        "path_angle_rate_limited": False, "path_angle_magnitude_limited": False,
+                        "curvature_rate_magnitude_limited": False}
     if not CC.latActive or model is None:
+      if CC.latActive:
+        self.diagnostics["reason"] = "missing_model"
       return self.reset()
+    self.diagnostics["reason"] = "invalid_model"
     # Model arrays must be present, full length and finite before issuing any command.
     try:
       arrays = [model.orientationRate.z, model.position.y, model.laneLines[1].y, model.laneLines[2].y]
@@ -339,8 +356,12 @@ class BluePilotLateral:
       reset_steering = 0
 
     if reset_steering:
+      self.diagnostics["reason"] = "standstill" if CS.out.vEgoRaw < 0.1 else "human_turn"
       return self.reset()
-    apply_curvature = apply_ford_curvature_limits(requested_curvature, self.apply_curvature_last, current_curvature, CS.out.vEgoRaw, self.CP)
+    self.diagnostics.update(reason="active", requested_curvature=float(requested_curvature),
+                            predicted_curvature=float(predicted_curvature), measured_curvature=float(current_curvature),
+                            blend_ratio=float(self.pc_blend_ratio), lane_change=bool(self.lane_change))
+    apply_curvature = apply_ford_curvature_limits(requested_curvature, self.apply_curvature_last, current_curvature, CS.out.vEgoRaw, self.CP, self.diagnostics)
 
     # detect if steering was limited (lanes changes always trigger, but complete just fine)
     if (requested_curvature != apply_curvature) and (not steeringPressed) and (not self.lane_change):
@@ -440,7 +461,10 @@ class BluePilotLateral:
 
     # rate limit path_angle_low_c for comfort
     path_angle_roc = interp(abs(CS.out.vEgoRaw), self.LC_path_angle_ROC_bp, self.LC_path_angle_ROC_v)
+    before_path_angle_rate = path_angle_low_c
     path_angle_low_c = clip(path_angle_low_c, self.path_angle_last - path_angle_roc, self.path_angle_last + path_angle_roc)
+
+    self.diagnostics["path_angle_rate_limited"] = bool(path_angle_low_c != before_path_angle_rate)
 
     # if the driver is applying consistent pressure to the steering wheel, reset the path_angle_low_c PID controller
     if steeringPressed:
@@ -459,6 +483,11 @@ class BluePilotLateral:
     # Apply post lane change transition logic
     path_angle, path_offset, desired_curvature_rate = self.handle_post_lane_change_transition(path_angle, path_offset, desired_curvature_rate)
 
+    self.diagnostics.update(
+      curvature_magnitude_limited=bool(abs(apply_curvature) > self.curvature_max),
+      path_angle_magnitude_limited=bool(abs(path_angle) > self.path_angle_max),
+      curvature_rate_magnitude_limited=bool(abs(desired_curvature_rate) > self.curvature_rate_max),
+      post_lane_change_transition=bool(self.post_lane_change_active))
     # clip all values to max.
     apply_curvature = clip(apply_curvature, -self.curvature_max, self.curvature_max)
     desired_curvature_rate = clip(desired_curvature_rate, -self.curvature_rate_max, self.curvature_rate_max)

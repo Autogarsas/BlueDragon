@@ -41,6 +41,10 @@ def report(paths):
   can_commands = Counter()
   cp = None
   problems = []
+  diagnostic_counts = Counter()
+  diagnostic_transitions = Counter()
+  diagnostic_windows = diagnostic_samples = 0
+  diagnostic_examples = []
   for path in paths:
     try:
       for event in events(path):
@@ -49,7 +53,20 @@ def report(paths):
         first_t = t if first_t is None else min(first_t, t)
         last_t = t if last_t is None else max(last_t, t)
         counts[kind] += 1
-        if kind == "carParams":
+        if kind == "logMessage":
+          try:
+            entry = json.loads(event.logMessage)
+            message = entry.get("msg", {}) if isinstance(entry, dict) else {}
+          except (ValueError, TypeError):
+            continue
+          if isinstance(message, dict) and message.get("event") == "bluedragon_ford_steering" and message.get("schema") == 1:
+            diagnostic_windows += 1
+            diagnostic_samples += message["samples"]
+            diagnostic_counts.update(message["counts"])
+            diagnostic_transitions.update(message["transitions"])
+            if len(diagnostic_examples) < 8 and any(k.endswith("_limited") and v for k, v in message["counts"].items()):
+              diagnostic_examples.append(message)
+        elif kind == "carParams":
           c = event.carParams
           cp = {"brand": c.brand, "fingerprint": c.carFingerprint, "flags": c.flags,
                 "safety": [{"model": str(s.safetyModel), "param": s.safetyParam} for s in c.safetyConfigs]}
@@ -115,6 +132,9 @@ def report(paths):
     entry["modes"] = sorted(entry["modes"])
   return {"vehicle": cp, "span_seconds": round(last_t - first_t, 1) if first_t is not None else 0,
           "samples": {k: counts[k] for k in ("carControl", "carState", "carOutput", "pandaStates", "modelV2", "lat_active_samples")},
+          "ford_host_diagnostics": {"windows": diagnostic_windows, "samples": diagnostic_samples,
+                                    "sample_counts": dict(diagnostic_counts), "reason_entries": dict(diagnostic_transitions),
+                                    "limited_window_examples": diagnostic_examples},
           "pandas": pandas, "blocked_command_examples": first_block, "steering_fault_samples": dict(faults),
           "alerts": dict(alerts.most_common(8)), "max_abs_desired_curvature": round(max_desired, 6),
           "max_abs_host_output_curvature": round(max_output, 6), "max_abs_steering_angle_deg": round(max_angle, 1),
@@ -125,6 +145,7 @@ def report(paths):
 def main():
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("--logs", type=Path, default=Path("/data/media/0/realdata"))
+  parser.add_argument("--all-segments", action="store_true", help="Read every available segment of the latest route")
   args = parser.parse_args()
   logs = []
   for directory in args.logs.iterdir():
@@ -141,7 +162,7 @@ def main():
   route = newest.parent.name.rsplit("--", 1)[0]
   route_logs = sorted([p for p in logs if p.parent.name.rsplit("--", 1)[0] == route],
                       key=lambda p: int(p.parent.name.rsplit("--", 1)[1]))
-  selected = list(dict.fromkeys([route_logs[0], *route_logs[-6:]]))
+  selected = route_logs if args.all_segments else list(dict.fromkeys([route_logs[0], *route_logs[-6:]]))
   print("READ-ONLY: latest route", route, flush=True)
   print("Segments:", ", ".join(p.parent.name.rsplit("--", 1)[1] + "/" + p.name for p in selected), flush=True)
   result = report(selected)

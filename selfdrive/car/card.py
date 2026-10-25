@@ -287,6 +287,8 @@ class Car:
         self.ford_bp.update()
       self.last_actuators_output, can_sends = self.CI.apply(CC, now_nanos)
       self.pm.send('sendcan', can_list_to_can_capnp(can_sends, msgtype='sendcan', valid=CS.canValid))
+      if self.ford_bp is not None:
+        self.ford_bp.log_diagnostics()
 
       self.CC_prev = CC
 

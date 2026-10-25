@@ -1,0 +1,10 @@
+{
+  "version": "1.1-dev1",
+  "baseline_commit": "a5aa0011f0a858bf06d9ca0b180fa56bd667bb08",
+  "branch": "bluedragon-dev",
+  "installer_sha256": "6f341fe8dae83d82721f04295f86767b417c3045a36c1c8b9ac1d02bae665833",
+  "source_installer_sha256": "07c5e5743a878d54c655a1309c72a87db44fa94a47bc85308516baa6e0d666d1",
+  "branch_parameter_offset": 957198,
+  "change": "Only the equal-length padded branch parameter changes. Instructions, repository URL and file size are unchanged.",
+  "hardware_install_tested": false
+}

@@ -9,6 +9,9 @@ class FordBluePilotAdapter:
     self.params = params
     self.sm = messaging.SubMaster(["modelV2"])
     self.settings_frame = 0
+    from openpilot.common.swaglog import cloudlog
+    from dragonpilot.selfdrive.car.ford_diagnostics import FordSteeringDiagnostics
+    self.diagnostics = FordSteeringDiagnostics(cloudlog.event, controller.CP.carFingerprint)
 
   def update(self):
     self.sm.update(0)
@@ -21,3 +24,6 @@ class FordBluePilotAdapter:
         values[key] = spec["default"] if value is None else value
       self.controller.bp_lateral.configure(values)
     self.settings_frame += 1
+
+  def log_diagnostics(self):
+    self.diagnostics.observe(self.controller.bp_lateral.diagnostics)
