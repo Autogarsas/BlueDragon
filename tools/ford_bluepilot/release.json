@@ -1,11 +1,11 @@
 {
   "project": "BlueDragon",
-  "version": "1.0",
-  "channel": "bluedragon-1.0",
+  "version": "1.1-dev2",
+  "channel": "bluedragon-dev",
   "base_integration": "37666613d40505461f457c002a4fdd40686b9d89",
   "dragonpilot_base": "3e8edb7e3d6d8fb0393f0604ee3954ee328857f5",
   "bluepilot_source": "c6f8350f17c0622d7a075fe03ae760425e68fd2c",
-  "driving_changes_from_tested_baseline": false,
+  "driving_changes_from_tested_baseline": true,
   "params": {
     "path": "common/params_pyx.so",
     "architecture": "aarch64",
@@ -53,20 +53,28 @@
   },
   "panda_h7": {
     "path": "panda/board/obj/panda_h7.bin.signed",
-    "sha256": "9e9594633dcbd4a63af8e5028c54a870e44553d53773c662b33540f4179b71ce",
-    "version": "DEV-f95cbde6-DEBUG",
-    "signature_prefix": "9a428b52a93e508a",
-    "build_manifest": "tools/ford_bluepilot/firmware/build.json",
-    "device_flash_signature_verified": true,
-    "same_image_as_user_tested_repair": true
+    "sha256": "541f9b07c9dc8ca42a2c3774f3bd5e62e5d5a51cb7de631ac2d29abf92086561",
+    "version": "DEV-4d0f6dc0-DEBUG",
+    "signature_prefix": "842c1b8a537220df",
+    "build_manifest": "tools/chrysler_alka/h7-build.json",
+    "device_flash_signature_verified": false,
+    "same_image_as_user_tested_repair": false
   },
-  "validation_limits": "Branding and binary packaging only; fresh install and renamed UI still need a device check. User reports the existing repaired Ford setup works well.",
+  "validation_limits": "252 tests: 231 passed, 21 inherited skips; Ford 10000-frame and ALKA-off Chrysler 6000-frame equivalence passed. H7 build, RSA signature and source manifest verified. New H7 flash and Pacifica ALKA require device validation.",
   "repository": "Autogarsas/BlueDragon",
   "installer": {
-    "path": "installer/bluedragon-1.0",
-    "sha256": "07c5e5743a878d54c655a1309c72a87db44fa94a47bc85308516baa6e0d666d1",
-    "branch": "bluedragon-1.0",
+    "path": "installer/bluedragon-dev",
+    "sha256": "6f341fe8dae83d82721f04295f86767b417c3045a36c1c8b9ac1d02bae665833",
+    "branch": "bluedragon-dev",
     "clones": "https://github.com/Autogarsas/BlueDragon.git",
     "device_install_tested": false
+  },
+  "pacifica_alka": {
+    "source": "BluePilot bp-5.0 / sunnypilot MADS; dragonpilot ALKA adapter",
+    "minimum_steering_kmh": 63,
+    "scope": "Pacifica only",
+    "ford_controller_changed": false,
+    "hardware_tested": false,
+    "documentation": "docs/PACIFICA_ALKA.md"
   }
 }

@@ -1,4 +1,4 @@
-# Pacifica always-on lateral (development)
+# BlueDragon 1.1-dev2: Pacifica always-on lateral
 
 This adapts BluePilot bp-5.0 / sunnypilot MADS Chrysler switch and heartbeat
 handling to dragonpilot's existing ALKA framework. It is opt-in through the
@@ -50,10 +50,46 @@ heartbeat preservation, EPS/vehicle eligibility, and unchanged non-Pacifica
 parameters. Existing Chrysler and Ford safety/controller suites also run.
 The Ford baseline equivalence tool compares 10,000 CAN/controller frames.
 
-The feature source branch must not be installed until a matching signed H7
-application and verified build manifest are packaged. The old Ford-only H7
-application does not implement these Pacifica permissions. The GitHub workflow
-builds an application artifact without flashing hardware or changing bootstubs.
+The matching signed H7 application is packaged in `panda/board/obj`, with
+manifest `tools/chrysler_alka/h7-build.json`. The old Ford-only H7 application
+does not implement these Pacifica permissions. The build workflow and local
+RSA verification passed; normal pandad startup flashes the changed application.
+No bootstub, AGNOS image, driving model, or parameter library is replaced.
+
+Validation: 252 tests run, 231 passed and 21 inherited skips. Ford baseline
+equivalence passed over 10,000 simulated frames; Chrysler/Pacifica/Jeep/RAM
+controller equivalence with ALKA off passed over 6,000 frames. A 2,000-update
+Pacifica controller/Panda simulation accepted all 1,200 transmitted CAN frames.
+These simulations do not demonstrate physical EPS acceptance.
+
+## Update from dev1 using SSH
+
+While parked, ignition off and the comma offroad, on `bluedragon-dev`:
+
+```sh
+cd /data/openpilot &&
+test "$(cat /data/params/d/IsOnroad)" = "0" &&
+test "$(git branch --show-current)" = "bluedragon-dev" &&
+git pull --ff-only &&
+python3 tools/chrysler_alka/verify_release.py &&
+sudo reboot
+```
+
+This stops on a failed check, a conflicting local change, or verification
+failure. Do not force-reset local repairs if an update reports a conflict.
+The existing global ALKA preference is retained; inspect it after updating,
+especially if it was previously enabled while using the Ford.
+
+After reboot, the Panda connected log must report `DEV-4d0f6dc0-DEBUG` and
+signature prefix `842c1b8a537220df` matching the expected prefix. Verify the
+detected Pacifica profile and minimum steering speed of 63 km/h before testing
+the feature. Turning LKAS off must stop steering even with ACC engaged.
+
+For rollback, dev1 is preserved by commit
+`b74160d69d62d9db009ca5e79219105f1d71a49e`. While offroad with a clean working
+tree, `git switch --detach b74160d69d62d9db009ca5e79219105f1d71a49e` followed
+by reboot restores the dev1 application and prior H7 firmware. The stable
+`bluedragon-1.0` installer remains available separately.
 
 No hardware/road validation of this new feature is claimed. Initial device
 validation must verify the flashed application signature, detected profile,

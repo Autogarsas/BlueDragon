@@ -34,6 +34,12 @@ jobs:
             panda/board
             panda/tests/libpanda
             site_scons
+            tools/chrysler_alka
+            selfdrive/car
+            selfdrive/controls
+            dragonpilot/selfdrive/ui/layouts/settings
+            dragonpilot/settings
+            dragonpilot/dashy
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -48,6 +54,12 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/opendbc_repo
         run: |
           python -m unittest -v opendbc.car.chrysler.tests.test_alka opendbc.safety.tests.test_chrysler_alka opendbc.safety.tests.test_chrysler opendbc.car.ford.tests.test_bluepilot opendbc.safety.tests.test_ford_bluepilot opendbc.safety.tests.test_alka.TestALKAFord opendbc.safety.tests.test_alka.TestALKADisabledBrands
+          python -m compileall -q selfdrive/controls/controlsd.py dragonpilot/selfdrive/ui/layouts/settings/dragonpilot.py dragonpilot/settings/min-feat.lat.alka-v2.py dragonpilot/dashy/serverd.py
+          test -x selfdrive/controls/controlsd.py
+          test -x selfdrive/car/card.py
+      - name: Verify packaged firmware
+        if: hashFiles('tools/chrysler_alka/h7-build.json') != ''
+        run: python tools/chrysler_alka/verify_release.py
       - name: Build signed H7 application
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/opendbc_repo

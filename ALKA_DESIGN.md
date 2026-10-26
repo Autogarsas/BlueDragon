@@ -5,8 +5,9 @@
 ALKA enables lateral control (steering) when ACC Main is ON, without requiring cruise to be engaged. This allows lane keeping assist to function independently of longitudinal control.
 
 **Simplified Behavior (v3):**
-- All brands use direct tracking: `lkas_on = acc_main_on`
-- No button/toggle tracking (removed TJA, LKAS button, LKAS HUD)
+- Existing brands use direct tracking: `lkas_on = acc_main_on`
+- Pacifica adds physical LKAS button tracking and camera heartbeat replacement;
+  see [Pacifica ALKA](docs/PACIFICA_ALKA.md) for its additional prerequisites.
 - ACC Main ON = ALKA enabled, ACC Main OFF = ALKA disabled
 
 ---
@@ -16,7 +17,8 @@ ALKA enables lateral control (steering) when ACC Main is ON, without requiring c
 | Brand | Status | ACC Main Source | Notes |
 |-------|--------|-----------------|-------|
 | Body | Disabled | - | No steering capability |
-| Chrysler | Disabled | - | Needs special handling |
+| Chrysler Pacifica | Enabled (opt-in development) | DAS_3 (0x1F4) bit 20 | Physical LKAS switch; above 63 km/h; matching H7 required |
+| Other Chrysler / Jeep / RAM | Disabled | - | No new ALKA integration |
 | Ford | Enabled | EngBrakeData (0x165) CcStat | |
 | GM | Disabled | - | No ACC Main signal |
 | Honda Nidec | Enabled | SCM_FEEDBACK (0x326) MAIN_ON | |
