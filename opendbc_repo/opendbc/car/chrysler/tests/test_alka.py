@@ -121,6 +121,34 @@ class TestPacificaALKA(unittest.TestCase):
           output, _ = controller.update(cc.as_reader(), cs, 0)
         self.assertEqual(0, output.torqueOutputCan)
 
+  def test_controller_commands_pass_matching_panda(self):
+    from opendbc.safety.tests import test_chrysler_alka
+    from opendbc.safety.tests.libsafety import libsafety_py
+
+    safety_test = test_chrysler_alka.TestPacificaALKASafety()
+    safety_test.setUp()
+    cp = params()
+    controller = CarController(DBC[cp.carFingerprint], cp)
+    cc = structs.CarControl(latActive=True)
+    cs = SimpleNamespace(out=structs.CarState(canValid=True, vEgo=20, gearShifter="drive"), lkas_on=True,
+                         lkas_heartbit=dict.fromkeys(("AUTO_HIGH_BEAM", "FORWARD_1", "FORWARD_2", "FORWARD_3"), 0),
+                         lkas_car_model=-1, button_counter=0, auto_high_beam=0)
+    nonzero = 0
+    for i in range(2000):
+      safety_test.safety.set_timer(1000 + i * 10000)
+      safety_test.inputs()
+      safety_test.button()
+      safety_test.rx("LKAS_HEARTBIT", {}, 2)
+      cs.out.steeringTorqueEps = controller.apply_torque_last
+      safety_test.rx("EPS_2", {"EPS_TORQUE_MOTOR": controller.apply_torque_last})
+      cc.actuators.torque = .1 if i % 600 < 300 else -.1
+      cc.latActive = i % 400 < 350
+      output, messages = controller.update(cc.as_reader(), cs, i * 10000000)
+      for addr, data, bus in messages:
+        self.assertTrue(safety_test.safety.safety_tx_hook(libsafety_py.make_CANPacket(addr, bus, data)), (i, addr))
+      nonzero += output.torqueOutputCan != 0
+    self.assertGreater(nonzero, 0)
+
 
 if __name__ == "__main__":
   unittest.main()

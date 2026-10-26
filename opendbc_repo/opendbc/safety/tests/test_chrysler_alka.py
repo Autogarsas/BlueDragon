@@ -121,6 +121,24 @@ class TestPacificaALKASafety(unittest.TestCase):
     self.rx("LKAS_HEARTBIT", {}, 2)
     self.assertTrue(self.steer())
 
+  def test_low_rate_auxiliary_messages_do_not_break_rx_checks(self):
+    self.prime()
+    self.safety.safety_tick_current_safety_config()
+    self.assertTrue(self.safety.safety_config_valid())
+    self.assertTrue(self.steer())
+
+  def test_host_and_panda_switch_state_agree(self):
+    import random
+    from opendbc.car.chrysler.alka import PacificaALKA
+
+    host = PacificaALKA()
+    rng = random.Random(63)
+    for _ in range(1000):
+      main, pressed = bool(rng.getrandbits(1)), bool(rng.getrandbits(1))
+      self.main(main)
+      self.button(pressed)
+      self.assertEqual(host.update(main, [pressed]), self.safety.get_lkas_on())
+
   def test_stale_critical_inputs(self):
     self.prime()
     self.safety.set_timer(1001001)

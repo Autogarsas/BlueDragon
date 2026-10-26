@@ -14,6 +14,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: pacifica-alka-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-and-build:
     runs-on: ubuntu-24.04
@@ -34,10 +38,11 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install build and test dependencies
+        timeout-minutes: 5
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends gcc-arm-none-eabi libnewlib-dev
-          python -m pip install numpy pycapnp==2.2.4 cffi pycryptodome scons==4.11.1
+          sudo apt-get update -qq -o Acquire::Retries=0 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 -o Dir::Etc::sourcelist=sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=-
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=0 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 gcc-arm-none-eabi libnewlib-dev
+          python -m pip install --timeout 60 --retries 2 numpy pycapnp==2.2.4 cffi pycryptodome scons==4.11.1
       - name: Test Chrysler and Ford
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/opendbc_repo
