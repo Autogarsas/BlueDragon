@@ -32,6 +32,7 @@ jobs:
             openpilot
             opendbc_repo
             panda/board
+            panda/python
             panda/tests/libpanda
             site_scons
             tools/chrysler_alka
