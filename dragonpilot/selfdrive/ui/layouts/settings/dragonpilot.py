@@ -36,6 +36,7 @@ class DragonpilotLayout(Widget):
 
     self._scroller: Scroller | None = None
     self._brand = ""
+    self._car_fingerprint = ""
 
     self._toggles = {}
     self._toggle_metadata = {}
@@ -51,6 +52,7 @@ class DragonpilotLayout(Widget):
     self._openpilot_longitudinal_control = False
     if ui_state.CP is not None:
       self._brand = ui_state.CP.brand
+      self._car_fingerprint = ui_state.CP.carFingerprint
       self._openpilot_longitudinal_control = ui_state.CP.openpilotLongitudinalControl
 
     self._load_settings()
@@ -91,7 +93,8 @@ class DragonpilotLayout(Widget):
     if not condition:
       return True
 
-    context = {"LITE": LITE, "MICI": MICI, "brand": self._brand, "openpilotLongitudinalControl": self._openpilot_longitudinal_control}
+    context = {"LITE": LITE, "MICI": MICI, "brand": self._brand, "carFingerprint": self._car_fingerprint,
+               "openpilotLongitudinalControl": self._openpilot_longitudinal_control}
 
     try:
       return eval(condition, context)

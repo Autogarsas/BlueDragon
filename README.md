@@ -1,17 +1,24 @@
-# BlueDragon 1.1-dev1 — steering diagnostics
+# BlueDragon 1.1-dev2 — Pacifica always-on lateral
 
 **dragonpilot features with BluePilot Ford steering.**
 
 BlueDragon is an independent integration of dragonpilot 0.11.1 and the
-curvature-primary Ford steering from BluePilot bp-5.0. This version preserves
-the driving behavior of the repaired setup reported working by its owner.
+curvature-primary Ford steering from BluePilot bp-5.0. This version adds opt-in
+Pacifica always-on lateral while preserving the existing Ford controller.
 
 ## Versions and installation
 
 - **`bluedragon-1.0`** preserves the current Ford baseline, with the parameter
   library repair and matching H7 Panda application included in the package.
-- **`bluedragon-dev`** adds observational Ford steering diagnostics. It keeps
-  the current controller behavior; no BP7 control changes are included.
+- **`bluedragon-dev`** includes Ford steering diagnostics and Pacifica ALKA,
+  adapted from BluePilot bp-5.0 / sunnypilot MADS. ACC Main enables lateral,
+  the physical LKAS button toggles it, and steering requires speed above
+  **63 km/h**. A matching signed H7 application is included. No BP7 control
+  changes are included.
+
+See [Pacifica ALKA](docs/PACIFICA_ALKA.md) for behavior, validation, update and
+rollback instructions. Enable **Settings → BlueDragon → Lateral → Always-on
+Lane Keeping Assist (ALKA)** and reboot to apply the setting.
 
 See [Stage 1 diagnostics](docs/FORD_DIAGNOSTICS_STAGE1.md) for validation and
 baseline logging instructions. Development installer:
@@ -26,9 +33,10 @@ about that particular setup, not compatibility confirmation for other retrofits
 or hardware. Install while parked and check startup before use.
 
 The packaged ARM settings library has been tested under ARM Python 3.12 through
-QEMU. The H7 image is byte-for-byte the one flashed and signature-verified on
-the owner's device. A fresh installation of the renamed package and its UI
-has not yet been checked on that device. No full-system rebuild is claimed.
+QEMU and is unchanged. The new H7 application was built in GitHub Actions and
+its RSA signature, image layout and source manifest verified. New-firmware
+flashing and Pacifica ALKA still require device validation. No full-system
+rebuild or road-test result for this new feature is claimed.
 
 ## What is preserved
 

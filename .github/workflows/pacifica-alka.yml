@@ -1,0 +1,81 @@
+name: Pacifica ALKA tests and H7 build
+
+on:
+  push:
+    branches: [chrysler-alka]
+  pull_request:
+    branches: [bluedragon-dev]
+    paths:
+      - 'opendbc_repo/opendbc/car/chrysler/**'
+      - 'opendbc_repo/opendbc/safety/**'
+      - '.github/workflows/pacifica-alka.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pacifica-alka-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          sparse-checkout: |
+            cereal
+            common
+            openpilot
+            opendbc_repo
+            panda/board
+            panda/python
+            panda/tests/libpanda
+            site_scons
+            tools/chrysler_alka
+            selfdrive/car
+            selfdrive/controls
+            dragonpilot/selfdrive/ui/layouts/settings
+            dragonpilot/settings
+            dragonpilot/dashy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install build and test dependencies
+        timeout-minutes: 5
+        run: |
+          sudo apt-get update -qq -o Acquire::Retries=0 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 -o Dir::Etc::sourcelist=sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=-
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=0 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 gcc-arm-none-eabi libnewlib-dev
+          python -m pip install --timeout 60 --retries 2 numpy pycapnp==2.2.4 cffi pycryptodome scons==4.11.1
+      - name: Test Chrysler and Ford
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/opendbc_repo
+        run: |
+          python -m unittest -v opendbc.car.chrysler.tests.test_alka opendbc.safety.tests.test_chrysler_alka opendbc.safety.tests.test_chrysler opendbc.car.ford.tests.test_bluepilot opendbc.safety.tests.test_ford_bluepilot opendbc.safety.tests.test_alka.TestALKAFord opendbc.safety.tests.test_alka.TestALKADisabledBrands
+          python -m compileall -q selfdrive/controls/controlsd.py dragonpilot/selfdrive/ui/layouts/settings/dragonpilot.py dragonpilot/settings/min-feat.lat.alka-v2.py dragonpilot/dashy/serverd.py
+          test -x selfdrive/controls/controlsd.py
+          test -x selfdrive/car/card.py
+      - name: Verify packaged firmware
+        if: hashFiles('tools/chrysler_alka/h7-build.json') != ''
+        run: python tools/chrysler_alka/verify_release.py
+      - name: Build signed H7 application
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/opendbc_repo
+        run: |
+          scons -C panda --site-dir=../site_scons -j2 board/obj/panda_h7.bin.signed
+          arm-none-eabi-gcc --version > panda/board/obj/compiler.txt
+          git rev-parse HEAD > panda/board/obj/source_commit.txt
+          sha256sum panda/board/obj/panda_h7.bin.signed > panda/board/obj/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pacifica-alka-h7
+          if-no-files-found: error
+          path: |
+            panda/board/obj/panda_h7.bin.signed
+            panda/board/obj/version
+            panda/board/obj/compiler.txt
+            panda/board/obj/source_commit.txt
+            panda/board/obj/SHA256SUMS

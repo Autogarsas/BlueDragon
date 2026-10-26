@@ -1,7 +1,7 @@
 """BlueDragon identity; upstream module names and parameter keys stay compatible."""
 
 NAME = "BlueDragon"
-VERSION = "1.1-dev1"
+VERSION = "1.1-dev2"
 DISPLAY_NAME = f"{NAME} {VERSION}"
 CREDITS = "dragonpilot + BluePilot"
 ACKNOWLEDGMENT = (

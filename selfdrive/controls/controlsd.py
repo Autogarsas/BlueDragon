@@ -10,6 +10,8 @@ from openpilot.common.realtime import config_realtime_process, DT_CTRL, Priority
 from openpilot.common.swaglog import cloudlog
 
 from opendbc.car.car_helpers import interfaces
+from opendbc.car.chrysler.alka import pacifica_steering_allowed
+from opendbc.car.chrysler.values import ChryslerFlags
 from opendbc.car.vehicle_model import VehicleModel
 from opendbc.safety import ALTERNATIVE_EXPERIENCE
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
@@ -108,6 +110,13 @@ class Controls:
       self.alka_active = lkas_on and gear_ok and calibrated and not CS.seatbeltUnlatched and not CS.doorOpen
     CC.latActive = (self.sm['selfdriveState'].active or self.alka_active) and not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
                    (not standstill or self.CP.steerAtStandstill)
+    if self.CP.brand == "chrysler" and self.CP.flags & ChryslerFlags.PACIFICA_ALKA:
+      # LKAS OFF also stops steering while ACC is active. Do not let the normal
+      # engagement path override the physical switch or ALKA prerequisites.
+      dm = self.sm['driverMonitoringState']
+      CC.latActive = CC.latActive and self.alka_active and pacifica_steering_allowed(CS, lkas_on, self.CP.minSteerSpeed) and \
+                     not (dm.lockout or dm.alwaysOnLockout) and \
+                     self.sm.all_checks(['carState', 'carStateExt', 'liveCalibration', 'driverMonitoringState', 'modelV2'])
     CC.longActive = CC.enabled and not any(e.overrideLongitudinal for e in self.sm['onroadEvents']) and self.CP.openpilotLongitudinalControl
 
     actuators = CC.actuators
