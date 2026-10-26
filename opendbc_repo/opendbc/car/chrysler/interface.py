@@ -3,7 +3,7 @@ from opendbc.car import get_safety_config, structs
 from opendbc.car.chrysler.carcontroller import CarController
 from opendbc.car.chrysler.carstate import CarState
 from opendbc.car.chrysler.radar_interface import RadarInterface
-from opendbc.car.chrysler.values import CAR, CUSW_CARS, RAM_HD, RAM_DT, RAM_CARS, ChryslerFlags, ChryslerSafetyFlags
+from opendbc.car.chrysler.values import CAR, CUSW_CARS, RAM_HD, RAM_DT, RAM_CARS, PACIFICA_ALKA_CARS, ChryslerFlags, ChryslerSafetyFlags
 from opendbc.car.interfaces import CarInterfaceBase
 
 
@@ -81,6 +81,13 @@ class CarInterface(CarInterfaceBase):
       # TODO: allow these cars to steer down to 13 m/s if already engaged.
       # TODO: Durango 2020 may be able to steer to zero once above 38 kph
       ret.minSteerSpeed = 17.5  # m/s 17 on the way up, 13 on the way down once engaged.
+
+    if candidate in PACIFICA_ALKA_CARS and dp_params & structs.DPFlags.LatALKA:
+      # Keep the newer EPS limit even when manual selection skips the firmware query.
+      # This first ALKA release deliberately uses 63 km/h on every Pacifica variant.
+      ret.flags |= int(ChryslerFlags.PACIFICA_ALKA | ChryslerFlags.HIGHER_MIN_STEERING_SPEED)
+      ret.safetyConfigs[0].safetyParam |= int(ChryslerSafetyFlags.PACIFICA_ALKA)
+      ret.minSteerSpeed = max(ret.minSteerSpeed, 17.5)
 
     ret.centerToFront = ret.wheelbase * 0.44
     ret.enableBsm = (0x62cc033 if candidate in CUSW_CARS else 0x2d0) in fingerprint[0]

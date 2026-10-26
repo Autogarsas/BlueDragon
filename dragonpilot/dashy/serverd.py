@@ -109,7 +109,7 @@ class AppCache:
 
     def _parse_car_params(self):
         """Parse CarParams from Params store."""
-        result = {'brand': '', 'openpilot_longitudinal_control': False}
+        result = {'brand': '', 'carFingerprint': '', 'openpilot_longitudinal_control': False}
         try:
             # CarParams is cleared offroad/at boot; CarParamsPersistent keeps the last car's
             # params so brand/longitudinal-gated settings still show when configuring parked.
@@ -118,6 +118,7 @@ class AppCache:
                 from cereal import car
                 with car.CarParams.from_bytes(car_params_bytes) as cp:
                     result['brand'] = cp.brand
+                    result['carFingerprint'] = cp.carFingerprint
                     result['openpilot_longitudinal_control'] = cp.openpilotLongitudinalControl
         except Exception as e:
             logger.debug(f"Could not parse CarParams: {e}")
@@ -130,6 +131,7 @@ class AppCache:
             car_params = self.get_car_params()
             self._context = {
                 'brand': car_params['brand'],
+                'carFingerprint': car_params['carFingerprint'],
                 'openpilotLongitudinalControl': car_params['openpilot_longitudinal_control'],
                 'LITE': os.getenv("LITE") is not None,
                 'MICI': self._check_mici(),

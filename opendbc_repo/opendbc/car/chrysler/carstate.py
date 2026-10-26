@@ -1,6 +1,7 @@
 from opendbc.can import CANDefine, CANParser
 from opendbc.car import Bus, create_button_events, structs
-from opendbc.car.chrysler.values import CUSW_CARS, DBC, STEER_THRESHOLD, RAM_CARS
+from opendbc.car.chrysler.values import CUSW_CARS, DBC, STEER_THRESHOLD, RAM_CARS, ChryslerFlags
+from opendbc.car.chrysler.alka import PacificaALKA
 from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.interfaces import CarStateBase
 
@@ -23,6 +24,8 @@ class CarState(CarStateBase):
       self.shifter_values = can_define.dv["GEAR"]["PRNDL"]
 
     self.distance_button = 0
+    self.alka = PacificaALKA()
+    self.lkas_heartbit = None
 
   def update(self, can_parsers) -> structs.CarState:
     cp = can_parsers[Bus.pt]
@@ -81,6 +84,13 @@ class CarState(CarStateBase):
     ret.cruiseState.nonAdaptive = cp_cruise.vl["DAS_4"]["ACC_STATE"] in (1, 2)  # 1 NormalCCOn and 2 NormalCCSet
     ret.cruiseState.standstill = cp_cruise.vl["DAS_3"]["ACC_STANDSTILL"] == 1
     ret.accFaulted = cp_cruise.vl["DAS_3"]["ACC_FAULTED"] != 0
+
+    if self.CP.flags & ChryslerFlags.PACIFICA_ALKA:
+      requested = self.alka.update(ret.cruiseState.available, cp.vl_all["TRACTION_BUTTON"]["TOGGLE_LKAS"])
+      heartbeat = cp_cam.vl["LKAS_HEARTBIT"]
+      if cp_cam.ts_nanos["LKAS_HEARTBIT"]["LKAS_DISABLED"] > 0:
+        self.lkas_heartbit = dict(heartbeat)
+      self.lkas_on = requested and cp.can_valid and cp_cam.can_valid
 
     if self.CP.carFingerprint in RAM_CARS:
       # Auto High Beam isn't Located in this message on chrysler or jeep currently located in 729 message
@@ -152,7 +162,8 @@ class CarState(CarStateBase):
 
   @staticmethod
   def get_can_parsers(CP):
+    alka = CP.flags & ChryslerFlags.PACIFICA_ALKA
     return {
-      Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], [], 0),
-      Bus.cam: CANParser(DBC[CP.carFingerprint][Bus.pt], [], 2),
+      Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], [("TRACTION_BUTTON", 1)] if alka else [], 0),
+      Bus.cam: CANParser(DBC[CP.carFingerprint][Bus.pt], [("LKAS_HEARTBIT", 1)] if alka else [], 2),
     }

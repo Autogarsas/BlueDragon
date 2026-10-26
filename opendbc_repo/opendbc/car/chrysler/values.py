@@ -12,11 +12,13 @@ Ecu = CarParams.Ecu
 class ChryslerSafetyFlags(IntFlag):
   RAM_DT = 1
   RAM_HD = 2
+  PACIFICA_ALKA = 4
 
 
 class ChryslerFlags(IntFlag):
   # Detected flags
   HIGHER_MIN_STEERING_SPEED = 1
+  PACIFICA_ALKA = 2
 
 
 @dataclass
@@ -96,6 +98,12 @@ class CAR(Platforms):
     ChryslerCarSpecs(mass=3405., wheelbase=3.785, steerRatio=15.61, minSteerSpeed=16.),
     {Bus.pt: 'chrysler_ram_hd_generated'},
   )
+
+
+PACIFICA_ALKA_CARS = {
+  CAR.CHRYSLER_PACIFICA_2018, CAR.CHRYSLER_PACIFICA_2018_HYBRID,
+  CAR.CHRYSLER_PACIFICA_2019_HYBRID, CAR.CHRYSLER_PACIFICA_2020,
+}
 
 
 class CarControllerParams:

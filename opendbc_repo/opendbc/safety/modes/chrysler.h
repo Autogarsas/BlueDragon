@@ -12,6 +12,8 @@
 #define CHRYSLER_DAS_6            0x2A6  // LKAS HUD and auto headlight control from DASM
 #define CHRYSLER_LKAS_COMMAND     0x292  // LKAS controls from DASM
 #define CHRYSLER_CRUISE_BUTTONS   0x23B  // Cruise control buttons
+#define CHRYSLER_LKAS_HEARTBIT    0x2D9
+#define CHRYSLER_TRACTION_BUTTON  0x330
 
 // RAM DT addresses
 #define CHRYSLER_RAM_DT_EPS_2            0x31
@@ -39,6 +41,14 @@ typedef enum {
   CHRYSLER_PACIFICA,  // plus Jeep
 } ChryslerPlatform;
 static ChryslerPlatform chrysler_platform;
+static bool chrysler_alka;
+static bool chrysler_alka_button_prev;
+static bool chrysler_alka_button_seen;
+static bool chrysler_alka_heartbeat_seen;
+static uint32_t chrysler_alka_button_ts;
+static uint32_t chrysler_alka_heartbeat_ts;
+static uint8_t chrysler_alka_heartbeat[5];
+static bool chrysler_alka_above_min_speed;
 
 #define CHRYSLER_ADDR(name) ((uint32_t)((chrysler_platform == CHRYSLER_RAM_DT) ? CHRYSLER_RAM_DT_##name : \
                                         ((chrysler_platform == CHRYSLER_RAM_HD) ? CHRYSLER_RAM_HD_##name : CHRYSLER_##name)))
@@ -60,6 +70,16 @@ static void chrysler_rx_hook(const CANPacket_t *msg) {
   if ((msg->bus == das_3_bus) && (msg->addr == CHRYSLER_ADDR(DAS_3))) {
     bool cruise_engaged = GET_BIT(msg, 21U);
     pcm_cruise_check(cruise_engaged);
+    if (chrysler_alka) {
+      const bool main_on = GET_BIT(msg, 20U);
+      if (main_on && !acc_main_on) {
+        lkas_on = true;
+      }
+      if (!main_on) {
+        lkas_on = false;
+      }
+      acc_main_on = main_on;
+    }
   }
 
   // TODO: use the same message for both
@@ -71,6 +91,8 @@ static void chrysler_rx_hook(const CANPacket_t *msg) {
     int speed_l = (msg->data[0] << 4) + (msg->data[1] >> 4);
     int speed_r = (msg->data[2] << 4) + (msg->data[3] >> 4);
     vehicle_moving = (speed_l != 0) || (speed_r != 0);
+    // SPEED_1 is 0.071028 m/s per bit: 247 = 17.543916 m/s (>63 km/h).
+    chrysler_alka_above_min_speed = (speed_l >= 247) && (speed_r >= 247);
   }
 
   // exit controls on rising edge of gas press
@@ -82,6 +104,43 @@ static void chrysler_rx_hook(const CANPacket_t *msg) {
   if ((msg->bus == 0U) && (msg->addr == CHRYSLER_ADDR(ESP_1))) {
     brake_pressed = ((msg->data[0U] & 0xFU) >> 2U) == 1U;
   }
+}
+
+// The switch and camera heartbeat are only 1 Hz. Keep them out of RxCheck,
+// which requires >=10 Hz in this dragonpilot base, and bound their age here.
+// All steering-critical high-rate messages retain their checksum/counter checks.
+static void chrysler_rx_ext(const CANPacket_t *msg) {
+  if (chrysler_alka) {
+    if ((msg->bus == 0U) && (msg->addr == CHRYSLER_TRACTION_BUTTON) && (GET_LEN(msg) == 8U)) {
+      const bool pressed = GET_BIT(msg, 53U);
+      if (pressed && !chrysler_alka_button_prev && acc_main_on) {
+        lkas_on = !lkas_on;
+      }
+      chrysler_alka_button_prev = pressed;
+      chrysler_alka_button_seen = true;
+      chrysler_alka_button_ts = microsecond_timer_get();
+    }
+    if ((msg->bus == 2U) && (msg->addr == CHRYSLER_LKAS_HEARTBIT) && (GET_LEN(msg) == 5U)) {
+      for (int i = 0; i < 5; i++) {
+        chrysler_alka_heartbeat[i] = msg->data[i];
+      }
+      chrysler_alka_heartbeat_seen = true;
+      chrysler_alka_heartbeat_ts = microsecond_timer_get();
+    }
+  }
+}
+
+static bool chrysler_alka_inputs_valid(void) {
+  const uint32_t now = microsecond_timer_get();
+  bool valid = chrysler_alka_button_seen && chrysler_alka_heartbeat_seen &&
+               (safety_get_ts_elapsed(now, chrysler_alka_button_ts) <= 10000000U) &&
+               (safety_get_ts_elapsed(now, chrysler_alka_heartbeat_ts) <= 10000000U);
+  for (int i = 0; i < current_safety_config.rx_checks_len; i++) {
+    const RxStatus *status = &current_safety_config.rx_checks[i].status;
+    valid = valid && status->msg_seen && !status->lagging && status->valid_checksum && status->valid_quality_flag &&
+            (status->wrong_counters < MAX_WRONG_COUNTERS) && (safety_get_ts_elapsed(now, status->last_timestamp) <= 1000000U);
+  }
+  return valid;
 }
 
 static bool chrysler_tx_hook(const CANPacket_t *msg) {
@@ -120,11 +179,31 @@ static bool chrysler_tx_hook(const CANPacket_t *msg) {
     int desired_torque = ((msg->data[start_byte] & 0x7U) << 8) | msg->data[start_byte + 1];
     desired_torque -= 1024;
 
+    if (chrysler_alka && (desired_torque != 0)) {
+      // ALKA is lateral-only: never turn controls_allowed on for this feature.
+      // Gate normal ACC steering as well, so LKAS OFF remains authoritative.
+      if (((alternative_experience & ALT_EXP_ALKA) == 0) || !lkas_on || !acc_main_on ||
+          !chrysler_alka_above_min_speed || !chrysler_alka_inputs_valid()) {
+        tx = false;
+      }
+    }
+
     const TorqueSteeringLimits limits = (chrysler_platform == CHRYSLER_PACIFICA) ? CHRYSLER_STEERING_LIMITS :
                                         (chrysler_platform == CHRYSLER_RAM_DT) ? CHRYSLER_RAM_DT_STEERING_LIMITS : CHRYSLER_RAM_HD_STEERING_LIMITS;
 
     bool steer_req = (chrysler_platform == CHRYSLER_PACIFICA) ? GET_BIT(msg, 4U) : (msg->data[3] & 0x7U) == 2U;
     if (steer_torque_cmd_checks(desired_torque, steer_req, limits)) {
+      tx = false;
+    }
+  }
+
+  if (chrysler_alka && (msg->addr == CHRYSLER_LKAS_HEARTBIT)) {
+    bool preserved = chrysler_alka_heartbeat_seen;
+    for (int i = 0; i < 5; i++) {
+      const uint8_t mask = (i == 3) ? 0xFEU : 0xFFU;
+      preserved = preserved && ((msg->data[i] & mask) == (chrysler_alka_heartbeat[i] & mask));
+    }
+    if (!preserved || (!GET_BIT(msg, 24U) && (!lkas_on || !chrysler_alka_inputs_valid()))) {
       tx = false;
     }
   }
@@ -167,6 +246,13 @@ static safety_config chrysler_init(uint16_t param) {
     {CHRYSLER_DAS_6, 0, 8, .check_relay = true},
   };
 
+  static const CanMsg CHRYSLER_ALKA_TX_MSGS[] = {
+    {CHRYSLER_CRUISE_BUTTONS, 0, 3, .check_relay = false},
+    {CHRYSLER_LKAS_COMMAND, 0, 6, .check_relay = true},
+    {CHRYSLER_DAS_6, 0, 8, .check_relay = true},
+    {CHRYSLER_LKAS_HEARTBIT, 0, 5, .check_relay = true},
+  };
+
   static const CanMsg CHRYSLER_RAM_DT_TX_MSGS[] = {
     {CHRYSLER_RAM_DT_CRUISE_BUTTONS, 2, 3, .check_relay = false},
     {CHRYSLER_RAM_DT_LKAS_COMMAND, 0, 8, .check_relay = true},
@@ -195,6 +281,14 @@ static safety_config chrysler_init(uint16_t param) {
   safety_config ret;
 
   bool enable_ram_dt = GET_FLAG(param, CHRYSLER_PARAM_RAM_DT);
+  const uint32_t CHRYSLER_PARAM_PACIFICA_ALKA = 4U;
+  chrysler_alka = false;
+  chrysler_alka_button_prev = false;
+  chrysler_alka_button_seen = false;
+  chrysler_alka_heartbeat_seen = false;
+  chrysler_alka_button_ts = 0U;
+  chrysler_alka_heartbeat_ts = 0U;
+  chrysler_alka_above_min_speed = false;
 
   if (enable_ram_dt) {
     chrysler_platform = CHRYSLER_RAM_DT;
@@ -206,7 +300,13 @@ static safety_config chrysler_init(uint16_t param) {
 #endif
   } else {
     chrysler_platform = CHRYSLER_PACIFICA;
-    ret = BUILD_SAFETY_CFG(chrysler_rx_checks, CHRYSLER_TX_MSGS);
+    chrysler_alka = GET_FLAG(param, CHRYSLER_PARAM_PACIFICA_ALKA);
+    alka_allowed = chrysler_alka;
+    if (chrysler_alka) {
+      ret = BUILD_SAFETY_CFG(chrysler_rx_checks, CHRYSLER_ALKA_TX_MSGS);
+    } else {
+      ret = BUILD_SAFETY_CFG(chrysler_rx_checks, CHRYSLER_TX_MSGS);
+    }
   }
   return ret;
 }
@@ -214,6 +314,7 @@ static safety_config chrysler_init(uint16_t param) {
 const safety_hooks chrysler_hooks = {
   .init = chrysler_init,
   .rx = chrysler_rx_hook,
+  .rx_ext = chrysler_rx_ext,
   .tx = chrysler_tx_hook,
   .get_counter = chrysler_get_counter,
   .get_checksum = chrysler_get_checksum,

@@ -73,6 +73,14 @@ def create_cruise_buttons(packer, frame, bus, cancel=False, resume=False):
   return packer.make_can_msg("CRUISE_BUTTONS", bus, values)
 
 
+def create_lkas_heartbeat(packer, heartbeat, enabled):
+  # BluePilot / sunnypilot MADS: replace only the LKAS disable bit. Preserve
+  # auto high beam and all other camera bytes, including unknown fields.
+  values = {s: heartbeat[s] for s in ("AUTO_HIGH_BEAM", "FORWARD_1", "FORWARD_2", "FORWARD_3")}
+  values["LKAS_DISABLED"] = not enabled
+  return packer.make_can_msg("LKAS_HEARTBIT", 0, values)
+
+
 def chrysler_checksum(address: int, sig, d: bytearray) -> int:
   checksum = 0xFF
   for j in range(len(d) - 1):

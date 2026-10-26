@@ -1,0 +1,63 @@
+name: Pacifica ALKA tests and H7 build
+
+on:
+  push:
+    branches: [chrysler-alka]
+  pull_request:
+    branches: [bluedragon-dev]
+    paths:
+      - 'opendbc_repo/opendbc/car/chrysler/**'
+      - 'opendbc_repo/opendbc/safety/**'
+      - '.github/workflows/pacifica-alka.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          sparse-checkout: |
+            cereal
+            common
+            openpilot
+            opendbc_repo
+            panda/board
+            panda/tests/libpanda
+            site_scons
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install build and test dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends gcc-arm-none-eabi libnewlib-dev
+          python -m pip install numpy pycapnp==2.2.4 cffi pycryptodome scons==4.11.1
+      - name: Test Chrysler and Ford
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/opendbc_repo
+        run: |
+          python -m unittest -v opendbc.car.chrysler.tests.test_alka opendbc.safety.tests.test_chrysler_alka opendbc.safety.tests.test_chrysler opendbc.car.ford.tests.test_bluepilot opendbc.safety.tests.test_ford_bluepilot opendbc.safety.tests.test_alka.TestALKAFord opendbc.safety.tests.test_alka.TestALKADisabledBrands
+      - name: Build signed H7 application
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/opendbc_repo
+        run: |
+          scons -C panda --site-dir=../site_scons -j2 board/obj/panda_h7.bin.signed
+          arm-none-eabi-gcc --version > panda/board/obj/compiler.txt
+          git rev-parse HEAD > panda/board/obj/source_commit.txt
+          sha256sum panda/board/obj/panda_h7.bin.signed > panda/board/obj/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pacifica-alka-h7
+          if-no-files-found: error
+          path: |
+            panda/board/obj/panda_h7.bin.signed
+            panda/board/obj/version
+            panda/board/obj/compiler.txt
+            panda/board/obj/source_commit.txt
+            panda/board/obj/SHA256SUMS

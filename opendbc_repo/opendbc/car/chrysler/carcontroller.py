@@ -2,6 +2,7 @@ from opendbc.can import CANPacker
 from opendbc.car import Bus, DT_CTRL
 from opendbc.car.lateral import apply_meas_steer_torque_limits
 from opendbc.car.chrysler import chryslercan
+from opendbc.car.chrysler.alka import pacifica_steering_allowed
 from opendbc.car.chrysler.values import CUSW_CARS, RAM_CARS, CarControllerParams, ChryslerFlags
 from opendbc.car.interfaces import CarControllerBase
 
@@ -23,6 +24,8 @@ class CarController(CarControllerBase):
     can_sends = []
 
     lkas_active = CC.latActive and self.lkas_control_bit_prev
+    if self.CP.flags & ChryslerFlags.PACIFICA_ALKA:
+      lkas_active = lkas_active and pacifica_steering_allowed(CS.out, CS.lkas_on, self.CP.minSteerSpeed)
 
     # cruise buttons
     if (self.frame - self.last_button_frame) * DT_CTRL > 0.05:
@@ -77,6 +80,9 @@ class CarController(CarControllerBase):
       self.apply_torque_last = apply_torque
 
       can_sends.append(chryslercan.create_lkas_command(self.packer, self.CP, int(apply_torque), lkas_control_bit))
+
+    if self.CP.flags & ChryslerFlags.PACIFICA_ALKA and self.frame % 10 == 0 and CS.lkas_heartbit is not None:
+      can_sends.append(chryslercan.create_lkas_heartbeat(self.packer, CS.lkas_heartbit, CS.lkas_on))
 
     self.frame += 1
 
