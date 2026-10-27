@@ -1,6 +1,6 @@
 {
   "project": "BlueDragon",
-  "version": "1.1-dev2",
+  "version": "1.1-dev2.1",
   "channel": "bluedragon-dev",
   "base_integration": "37666613d40505461f457c002a4fdd40686b9d89",
   "dragonpilot_base": "3e8edb7e3d6d8fb0393f0604ee3954ee328857f5",
@@ -76,5 +76,10 @@
     "ford_controller_changed": false,
     "hardware_tested": false,
     "documentation": "docs/PACIFICA_ALKA.md"
+  },
+  "ui_settings_fix": {
+    "description": "Refresh the car fingerprint and load CarParams before evaluating settings visibility",
+    "regression_tests": 6,
+    "passed": 6
   }
 }

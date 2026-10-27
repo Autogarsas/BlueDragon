@@ -247,11 +247,14 @@ class DragonpilotLayout(Widget):
     # so brand/longitudinal-gated sections would be filtered out and never come back. Re-read CP
     # when the menu is shown and rebuild the section list if it changed. CP comes from
     # CarParamsPersistent, so this also works offroad once the car has been identified once.
-    brand = ui_state.CP.brand if ui_state.CP is not None else ""
-    oplong = ui_state.CP.openpilotLongitudinalControl if ui_state.CP is not None else False
-    if brand == self._brand and oplong == self._openpilot_longitudinal_control:
+    cp = ui_state.CP
+    brand = cp.brand if cp is not None else ""
+    fingerprint = cp.carFingerprint if cp is not None else ""
+    oplong = cp.openpilotLongitudinalControl if cp is not None else False
+    if brand == self._brand and fingerprint == self._car_fingerprint and oplong == self._openpilot_longitudinal_control:
       return
     self._brand = brand
+    self._car_fingerprint = fingerprint
     self._openpilot_longitudinal_control = oplong
     self._toggles = {}
     self._toggle_metadata = {}
@@ -262,13 +265,12 @@ class DragonpilotLayout(Widget):
     self._scroller = Scroller(list(self._toggles.values()), line_separator=True, spacing=0)
 
   def show_event(self):
+    ui_state.update_params()
     self._refresh_visibility()
     self._scroller.show_event()
     self._update_toggles()
 
   def _update_toggles(self):
-    ui_state.update_params()
-
     # Refresh toggles from params to mirror external changes
     for _, meta in self._toggle_metadata.items():
       widget = meta["widget"]
@@ -301,3 +303,4 @@ class DragonpilotLayout(Widget):
 
   def _render(self, rect):
     self._scroller.render(rect)
+

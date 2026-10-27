@@ -1,0 +1,40 @@
+name: Settings visibility regression tests
+
+on:
+  push:
+    branches: [bluedragon-dev]
+    paths:
+      - 'dragonpilot/selfdrive/ui/layouts/settings/**'
+      - 'dragonpilot/selfdrive/ui/tests/test_settings_car_context.py'
+      - 'dragonpilot/settings/min-feat.lat.alka-v2.py'
+      - '.github/workflows/settings-visibility.yml'
+  pull_request:
+    branches: [bluedragon-dev]
+    paths:
+      - 'dragonpilot/selfdrive/ui/layouts/settings/**'
+      - 'dragonpilot/selfdrive/ui/tests/test_settings_car_context.py'
+      - 'dragonpilot/settings/min-feat.lat.alka-v2.py'
+      - '.github/workflows/settings-visibility.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  settings-visibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            dragonpilot/selfdrive/ui/layouts/settings
+            dragonpilot/selfdrive/ui/tests
+            dragonpilot/settings
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check startup and profile changes
+        run: |
+          python dragonpilot/selfdrive/ui/tests/test_settings_car_context.py -v
+          python -m compileall -q dragonpilot/selfdrive/ui/layouts/settings/dragonpilot.py

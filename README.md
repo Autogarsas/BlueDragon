@@ -1,10 +1,14 @@
-# BlueDragon 1.1-dev2 — Pacifica always-on lateral
+# BlueDragon 1.1-dev2.1 — Pacifica always-on lateral
 
 **dragonpilot features with BluePilot Ford steering.**
 
 BlueDragon is an independent integration of dragonpilot 0.11.1 and the
 curvature-primary Ford steering from BluePilot bp-5.0. This version adds opt-in
 Pacifica always-on lateral while preserving the existing Ford controller.
+
+Version 1.1-dev2.1 fixes ALKA settings visibility when the car profile arrives
+after UI startup or changes within the same brand. It refreshes the complete
+car context before showing settings.
 
 ## Versions and installation
 
