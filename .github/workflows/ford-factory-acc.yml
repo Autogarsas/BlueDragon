@@ -93,6 +93,7 @@ jobs:
             cereal
             common
             openpilot
+            opendbc_repo/opendbc/car
             system/hardware
             tools/ford_bluepilot
       - uses: actions/setup-python@v5

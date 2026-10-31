@@ -54,6 +54,15 @@ class TestFordFactoryACC(unittest.TestCase):
         self.assertFalse(cp.safetyConfigs[-1].safetyParam & FordSafetyFlags.STOCK_ACC)
         self.assertEqual(alpha or not cp.radarUnavailable, cp.openpilotLongitudinalControl)
 
+  def test_saved_ford_option_does_not_change_pacifica(self):
+    from opendbc.car.chrysler.interface import CarInterface as ChryslerInterface
+    from opendbc.car.chrysler.values import CAR as ChryslerCAR
+    baseline = ChryslerInterface.get_params(ChryslerCAR.CHRYSLER_PACIFICA_2018,
+      gen_empty_fingerprint(), [], False, False, dp_params=0, docs=True)
+    with_ford_setting = ChryslerInterface.get_params(ChryslerCAR.CHRYSLER_PACIFICA_2018,
+      gen_empty_fingerprint(), [], False, False, dp_params=structs.DPFlags.FordStockLon, docs=True)
+    self.assertEqual(baseline.to_bytes(), with_ford_setting.to_bytes())
+
   def test_no_accel_or_automatic_resume_even_if_requested(self):
     for candidate in (CAR.FORD_EDGE_MK2, CAR.FORD_MUSTANG_MACH_E_MK1):
       cp = params(candidate)
