@@ -54,8 +54,13 @@ class CarInterface(CarInterfaceBase):
       ret.flags |= int(FordFlags.BLUEPILOT)
       ret.safetyConfigs[-1].safetyParam |= int(FordSafetyFlags.BLUEPILOT)
 
-    ret.alphaLongitudinalAvailable = ret.radarUnavailable
-    if alpha_long or not ret.radarUnavailable:
+    stock_acc = bool(dp_params & structs.DPFlags.FordStockLon)
+    ret.alphaLongitudinalAvailable = ret.radarUnavailable and not stock_acc
+    if stock_acc:
+      ret.flags |= int(FordFlags.STOCK_ACC)
+      ret.safetyConfigs[-1].safetyParam |= int(FordSafetyFlags.STOCK_ACC)
+      ret.openpilotLongitudinalControl = False
+    elif alpha_long or not ret.radarUnavailable:
       ret.safetyConfigs[-1].safetyParam |= FordSafetyFlags.LONG_CONTROL.value
       ret.openpilotLongitudinalControl = True
 
@@ -98,6 +103,6 @@ class CarInterface(CarInterfaceBase):
     # LCA can steer down to zero
     ret.minSteerSpeed = 0.
 
-    ret.autoResumeSng = ret.minEnableSpeed == -1.
+    ret.autoResumeSng = ret.minEnableSpeed == -1. and not stock_acc
     ret.centerToFront = ret.wheelbase * 0.44
     return ret

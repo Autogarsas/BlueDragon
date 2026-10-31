@@ -107,6 +107,9 @@ class Car:
       if not self.params.get_bool("dp_ford_bp_disable"):
         dp_params |= structs.DPFlags.FordBluePilot
 
+      if self.params.get_bool("dp_ford_stock_lon"):
+        dp_params |= structs.DPFlags.FordStockLon
+
       if self.params.get_bool("dp_lat_alka"):
         dp_params |= structs.DPFlags.LatALKA
 

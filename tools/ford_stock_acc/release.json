@@ -1,0 +1,37 @@
+{
+  "version": "1.1-dev3",
+  "channel": "ford-stock-acc",
+  "base_commit": "a78a1d5462919e71c03bf24134dff9ba93b982bc",
+  "build_source_commit": "1bc2cb725f2dfc202a57397ee48e1bbc3f8b85e1",
+  "build_workflow_run": 41206649843,
+  "h7_manifest": "tools/chrysler_alka/h7-build.json",
+  "params_sha256": "2969cd672105891bba39ce3c215cea452e985a569c27c85060746edd6a53dd75",
+  "params_bytes": 1341664,
+  "params_build_artifact": 13044419453,
+  "params_python": "CPython 3.12.15, ABI CPython 3.12",
+  "registered_keys": 169,
+  "source_checksums": {
+    "common/params_pyx.cpp": "577696ab0bdf6536f5e3fafc0a226869bf7f9c6f540071a5dc422b01a053e49b",
+    "common/params.h": "7085d5ab842acac40fb2844c112869bff9698bbc5bebac2db6dd9485ed985364",
+    "common/params_keys.h": "3b1a6cc849a7d1d658e4cecb3327a504f7c2d4c7bd539e63c0ae289bae6c0c5c",
+    "common/util.h": "49db7a80478fb44be3a03ee5224775fa15e62a03f982152eae15f0a4dc5cceea",
+    "common/swaglog.h": "bcc65e78e40b45366f393fea51286b83ec75792e38c44914f89e3912f5a6841b",
+    "system/hardware/hw.h": "afc36d60417dbaf1683d17f10b32306c1d69f58816a6dad09c8da24484249da7",
+    "opendbc_repo/opendbc/car/structs.py": "c44b3607cf72eeea26939f7871981a45f9b0f93a8db20dbc67f7f2343f4d95f0",
+    "opendbc_repo/opendbc/car/ford/interface.py": "3d3f544a0582985c34f9de7097b8886109cddab750576eee8edf7e8fc05de863",
+    "opendbc_repo/opendbc/car/ford/carcontroller.py": "3f564f4f177a444ae29e7c015884aa5ae53c82d5c55426c2a93f6aeabceb79ba",
+    "opendbc_repo/opendbc/car/ford/values.py": "c2770ad018b363497a4da675e4ebfff61254e45d7ab09ad70dcc25943b1a8740",
+    "selfdrive/car/card.py": "c0eea65e7686b90d9be5b9813305d28832d3d430cb22e0dffadeff4f0418a98d",
+    "dragonpilot/settings/brand-ford-stock-acc.py": "0b9dcb186581b400d9ed736f3ec76349999a6c47088810de6db516fa5b19ab4c",
+    "tools/ford_bluepilot/rebuild_params.py": "089d472613c34cc4ce1221408e492b5ff564317fda76d0d9183b924b01e3c0d5"
+  },
+  "validation": {
+    "tests_run": 487,
+    "passed": 443,
+    "skipped": 44,
+    "native_arm_params_keys_passed": 169,
+    "steering_equivalence_updates": 4000,
+    "device_flash_verified": false,
+    "road_tested": false
+  }
+}
