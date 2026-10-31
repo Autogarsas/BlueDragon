@@ -1,14 +1,15 @@
-# BlueDragon 1.1-dev2.1 — Pacifica always-on lateral
+# BlueDragon 1.1-dev3 — Ford factory ACC option
 
 **dragonpilot features with BluePilot Ford steering.**
 
 BlueDragon is an independent integration of dragonpilot 0.11.1 and the
 curvature-primary Ford steering from BluePilot bp-5.0. This version adds opt-in
-Pacifica always-on lateral while preserving the existing Ford controller.
+Ford factory ACC while retaining the Ford steering and Pacifica always-on lateral.
 
-Version 1.1-dev2.1 fixes ALKA settings visibility when the car profile arrives
-after UI startup or changes within the same brand. It refreshes the complete
-car context before showing settings.
+Enable **Use Ford Factory ACC** to leave acceleration, braking, following gap
+and resume with the original Ford ACC. BlueDragon keeps steering. Change this
+setting while parked and reboot the comma to apply it. OFF retains the previous
+openpilot speed controller. See [Ford factory ACC](docs/FORD_FACTORY_ACC.md).
 
 ## Versions and installation
 
@@ -19,6 +20,10 @@ car context before showing settings.
   the physical LKAS button toggles it, and steering requires speed above
   **63 km/h**. A matching signed H7 application is included. No BP7 control
   changes are included.
+- **`ford-stock-acc`** is the 1.1-dev3 device-test branch. It adds the Ford factory
+  ACC option with a matched signed H7 application and ARM Python 3.12 settings
+  library. The option defaults to OFF. Device and road validation remain pending;
+  the previous development and stable branches are preserved.
 
 See [Pacifica ALKA](docs/PACIFICA_ALKA.md) for behavior, validation, update and
 rollback instructions. Enable **Settings → BlueDragon → Lateral → Always-on
@@ -36,17 +41,19 @@ retrofitted 2019 Fusion Hybrid with the Ford Edge MK2 profile. This is a report
 about that particular setup, not compatibility confirmation for other retrofits
 or hardware. Install while parked and check startup before use.
 
-The packaged ARM settings library has been tested under ARM Python 3.12 through
-QEMU and is unchanged. The new H7 application was built in GitHub Actions and
-its RSA signature, image layout and source manifest verified. New-firmware
-flashing and Pacifica ALKA still require device validation. No full-system
-rebuild or road-test result for this new feature is claimed.
+The new settings library was built and exercised natively on ARM Python 3.12,
+including all 169 declared keys. The H7 application was built in GitHub Actions;
+its RSA signature, layout and 139 source/protocol hashes were verified. The host
+and native safety suites ran 487 tests: 443 passed and 44 inherited tests skipped.
+Steering CAN output matched across the two speed modes for 4,000 updates.
+New-firmware flashing and vehicle behavior still require device validation.
 
 ## What is preserved
 
 - Ford predicted/actuator curvature blending and the current steering tuning.
 - Ford Edge MK2 profile and alternate steering-angle handling.
-- Existing dragonpilot longitudinal behavior, driving model, ALKA, and features.
+- Existing dragonpilot longitudinal behavior when factory ACC is OFF, driving
+  model, ALKA, and features.
 - Normal Panda checks during reset and recovery; no three-second reset bypass.
 - The repair for all 11 Ford settings in `common/params_pyx.so`.
 - The matching H7 application in its normal `panda/board/obj` installation path.

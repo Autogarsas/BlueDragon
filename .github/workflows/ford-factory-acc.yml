@@ -44,7 +44,9 @@ jobs:
             selfdrive/controls
             dragonpilot/settings
             tools/ford_stock_acc
+            tools/ford_bluepilot
             tools/chrysler_alka
+            system/hardware
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

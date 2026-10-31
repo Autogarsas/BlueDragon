@@ -1,15 +1,15 @@
 {
   "target": "comma 3X / TRES / STM32H725 H7",
-  "source_commit": "4d0f6dc0c0217d9bfe861322dda784ea475b095d",
-  "source_tree": "748acaae9f6c796e10dabfa46d98d0a0824a7b25",
+  "source_commit": "1bc2cb725f2dfc202a57397ee48e1bbc3f8b85e1",
+  "source_tree": "4b215a6e2b34a9fa72ce6f18799275f713a996b9",
   "build_command": "scons -C panda --site-dir=../site_scons -j2 board/obj/panda_h7.bin.signed",
   "compiler": "arm-none-eabi-gcc (15:13.2.rel1-2) 13.2.1 20231009",
-  "build_version": "DEV-4d0f6dc0-DEBUG",
-  "firmware_bytes": 72916,
-  "firmware_sha256": "541f9b07c9dc8ca42a2c3774f3bd5e62e5d5a51cb7de631ac2d29abf92086561",
-  "firmware_signature_prefix": "842c1b8a537220df",
-  "workflow_run": 40369967920,
-  "workflow_artifact": 12672416127,
+  "build_version": "DEV-1bc2cb72-DEBUG",
+  "firmware_bytes": 73080,
+  "firmware_sha256": "c0dbf4bc5cc29a961bc98330a60dd3ae6fe8a8b5cda1cf14ea2c8f65a10a56d5",
+  "firmware_signature_prefix": "62c8cc6e16dad297",
+  "workflow_run": 41206649843,
+  "workflow_artifact": 13045125049,
   "checksums": {
     "opendbc_repo/opendbc/safety/can.h": "604745d2af118f1ec71519f7c68566bb846e323652828e169b6d99ee018cfe52",
     "opendbc_repo/opendbc/safety/declarations.h": "ec9083c94c1a7f7d8f28f0027c85c9edde2b1a9f055ad5d89f20814990af25d6",
@@ -23,7 +23,7 @@
     "opendbc_repo/opendbc/safety/modes/chrysler_cusw.h": "ee8d3a3c3c860c29455ece5704c6a72932a63064fd6e1c795eff542593d330a6",
     "opendbc_repo/opendbc/safety/modes/defaults.h": "8c64e8970685a1a14e4c2a45bd47d25508bcc01df05215a1ba85972f6c7548fd",
     "opendbc_repo/opendbc/safety/modes/elm327.h": "aeb7c7a763d422cad072d1982585dab190a97593cc729cb528ac3e669241925e",
-    "opendbc_repo/opendbc/safety/modes/ford.h": "bd0994af5e896f251c9de6fc67e28f8777beb0758cfd0fc946cbf1f87d83fbb1",
+    "opendbc_repo/opendbc/safety/modes/ford.h": "eeb59ca3c7dc839f939a4ba7deff905f5aded440ab432a86bb4d5751189d0daf",
     "opendbc_repo/opendbc/safety/modes/gm.h": "c68a5aea1391fe5fd5c89e5bc23c41aca489e278c7b6267cdca403126b5d508b",
     "opendbc_repo/opendbc/safety/modes/honda.h": "88cb8211c0affc6bbedbc866c36d7869be40c8082ed9fce2bb07a88d4fdbf869",
     "opendbc_repo/opendbc/safety/modes/hyundai.h": "cd6689bd8d2b949da4377684cea4e9da767013d5735c9cc8905a60d9305ba610",
@@ -152,12 +152,13 @@
     "panda/python/constants.py": "aedb349236a89e58e90891dcd05627f6a4558d69832f49b055417e2520e72fdb"
   },
   "validation": {
-    "tests_run": 252,
-    "passed": 231,
-    "skipped": 21,
+    "tests_run": 487,
+    "passed": 443,
+    "skipped": 44,
     "ford_equivalence_frames": 10000,
     "chrysler_alka_off_equivalence_frames": 6000,
     "hardware_flash_tested": false,
-    "road_tested": false
+    "road_tested": false,
+    "ford_factory_acc_steering_equivalence_updates": 4000
   }
 }

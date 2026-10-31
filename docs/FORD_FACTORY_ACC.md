@@ -56,9 +56,22 @@ the settings-library checksum/architecture, and matching source hashes. It is
 read-only and does not prove the connected Panda has flashed the image.
 Normal pandad startup performs the application flash/signature check.
 
-The feature branch is not an installable package until the device build
-artifacts and release manifest have been committed. The prior `bluedragon-dev`
-and `bluedragon-1.0` versions remain available.
+The `ford-stock-acc` device-test branch includes both matched build artifacts.
+The prior `bluedragon-dev` and `bluedragon-1.0` versions remain available.
+Use a parked SSH branch switch for this test release; the existing development
+installer continues to install `bluedragon-dev`.
+
+After installing and rebooting, turn ignition on while parked and run
+`python3 tools/ford_stock_acc/check_mode.py`. It should show Ford factory ACC
+saved ON, openpilot speed control false, the factory-ACC safety bit selected,
+CAN valid, and no RX safety-check fault. The connected Panda must also report
+`DEV-1bc2cb72-DEBUG` with signature prefix `62c8cc6e16dad297` matching expected
+in the latest startup log. Parameter bits alone do not establish firmware support.
+
+To roll back to dev2.1, turn ignition off, save `dp_ford_stock_lon` false using
+the new Params library, switch back to `bluedragon-dev`, and reboot. Normal
+pandad startup restores that branch's bundled H7 application. Do not copy the
+new interface into the older branch without the matched package.
 
 ## Validation
 
@@ -70,7 +83,9 @@ controller updates, covering classic CAN/CAN FD and BluePilot on/off.
 
 Native Panda tests cover classic-CAN factory ACC, BluePilot factory ACC, CAN FD
 and conflicting flags. The existing Ford and Pacifica/Chrysler suites also run.
-The settings library is built and exercised with all 169 declared keys, normal
-storage operations, clear flags and unknown-key rejection. Native ARM build and
-H7 artifact results are recorded in `tools/ford_stock_acc/release.json` when
-packaged. Vehicle behavior still requires hardware validation.
+The settings library was built and exercised natively on ARM Python 3.12 with
+all 169 declared keys, normal storage operations, clear flags and unknown-key
+rejection. The combined suites ran 487 tests (443 passed, 44 inherited skips).
+Native ARM and H7 builds passed in GitHub Actions run 41206649843; artifact and
+source hashes are recorded in `tools/ford_stock_acc/release.json`.
+Vehicle behavior still requires hardware validation.
