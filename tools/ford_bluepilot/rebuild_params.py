@@ -46,6 +46,10 @@ with tempfile.TemporaryDirectory(prefix="params-verify-") as storage:
   assert declared == actual, (declared - actual, actual - declared)
   ford = sorted(k for k in actual if k.startswith("dp_ford_bp_"))
   assert len(ford) == 11, ford
+  if "dp_ford_stock_lon" in actual:
+    assert p.get_default_value("dp_ford_stock_lon") is False
+    p.put_bool("dp_ford_stock_lon", True, block=True)
+    assert p.get_bool("dp_ford_stock_lon")
   assert not p.get_bool("dp_ford_bp_disable")
   assert p.get_default_value("dp_ford_bp_disable") is False
   assert p.get_default_value("dp_ford_bp_enable_human_turn_detection") is True
@@ -97,6 +101,7 @@ def main():
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("--root", type=Path, default=Path("/data/openpilot"))
   parser.add_argument("--install", action="store_true")
+  parser.add_argument("--output", type=Path, help="Save a verified build without installing it")
   args = parser.parse_args()
   root = args.root.resolve()
   if (root / "git_src_commit").read_text().strip() != SOURCE_REF:
@@ -158,6 +163,9 @@ def main():
          Path(zmq.LIB_DIR, "libzmq.a"), "-o", candidate])
     print("Testing every declared key and isolated parameter storage", flush=True)
     run([sys.executable, "-c", VERIFY, root, candidate, "0" if args.install else "1"], cwd=root)
+    if args.output is not None:
+      args.output.parent.mkdir(parents=True, exist_ok=True)
+      shutil.copy2(candidate, args.output)
     if not args.install:
       print("BUILD AND TEST PASSED. No installed library was changed.", flush=True)
       return

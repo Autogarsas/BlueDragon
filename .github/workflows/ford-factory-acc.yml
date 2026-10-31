@@ -1,0 +1,116 @@
+name: Ford factory ACC tests and device builds
+
+on:
+  push:
+    branches: [ford-stock-acc]
+  pull_request:
+    branches: [bluedragon-dev]
+    paths:
+      - 'opendbc_repo/opendbc/car/ford/**'
+      - 'opendbc_repo/opendbc/safety/**'
+      - 'common/params_keys.h'
+      - 'common/params_pyx.so'
+      - 'selfdrive/car/card.py'
+      - 'dragonpilot/settings/brand-ford-stock-acc.py'
+      - 'tools/ford_stock_acc/**'
+      - '.github/workflows/ford-factory-acc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ford-factory-acc-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  safety-and-h7:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          sparse-checkout: |
+            cereal
+            common
+            openpilot
+            opendbc_repo
+            panda/board
+            panda/python
+            panda/tests/libpanda
+            site_scons
+            selfdrive/car
+            selfdrive/controls
+            dragonpilot/settings
+            tools/ford_stock_acc
+            tools/chrysler_alka
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq -o Acquire::Retries=0 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 -o Dir::Etc::sourcelist=sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=-
+          sudo apt-get install -y --no-install-recommends gcc-arm-none-eabi libnewlib-dev
+          python -m pip install --timeout 60 --retries 2 numpy pycapnp==2.2.4 cffi pycryptodome scons==4.11.1
+      - name: Run host and native safety tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/opendbc_repo
+        run: |
+          python -m unittest -v opendbc.car.ford.tests.test_factory_acc opendbc.car.ford.tests.test_bluepilot opendbc.safety.tests.test_ford_factory_acc opendbc.safety.tests.test_ford_bluepilot opendbc.safety.tests.test_ford opendbc.car.chrysler.tests.test_alka opendbc.safety.tests.test_chrysler_alka opendbc.safety.tests.test_chrysler opendbc.safety.tests.test_alka.TestALKAFord opendbc.safety.tests.test_alka.TestALKADisabledBrands
+          python -m compileall -q selfdrive/car/card.py dragonpilot/settings/brand-ford-stock-acc.py
+          test -x selfdrive/car/card.py
+      - name: Verify packaged release when present
+        if: hashFiles('tools/ford_stock_acc/release.json') != ''
+        run: python tools/ford_stock_acc/verify_release.py
+      - name: Build signed H7 application
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/opendbc_repo
+        run: |
+          scons -C panda --site-dir=../site_scons -j2 board/obj/panda_h7.bin.signed
+          arm-none-eabi-gcc --version > panda/board/obj/compiler.txt
+          git rev-parse HEAD > panda/board/obj/source_commit.txt
+          sha256sum panda/board/obj/panda_h7.bin.signed > panda/board/obj/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ford-factory-acc-h7
+          if-no-files-found: error
+          path: |
+            panda/board/obj/panda_h7.bin.signed
+            panda/board/obj/version
+            panda/board/obj/compiler.txt
+            panda/board/obj/source_commit.txt
+            panda/board/obj/SHA256SUMS
+
+  settings-aarch64:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            cereal
+            common
+            openpilot
+            system/hardware
+            tools/ford_bluepilot
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned comma build dependencies
+        run: |
+          python -m pip install --timeout 60 --retries 2 comma-deps-capnproto==1.0.1.post103 comma-deps-json11==20170411.0.post103 comma-deps-zeromq==4.3.5.post103
+      - name: Build and test native ARM settings library
+        run: |
+          python tools/ford_bluepilot/rebuild_params.py --root "$PWD" --output build/factory_acc/params_pyx.so
+          git rev-parse HEAD > build/factory_acc/source_commit.txt
+          sha256sum build/factory_acc/params_pyx.so > build/factory_acc/SHA256SUMS
+          readelf -h build/factory_acc/params_pyx.so > build/factory_acc/ELF.txt
+          readelf --version-info build/factory_acc/params_pyx.so > build/factory_acc/ABI.txt
+          g++ --version > build/factory_acc/compiler.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ford-factory-acc-settings-aarch64
+          if-no-files-found: error
+          path: build/factory_acc/

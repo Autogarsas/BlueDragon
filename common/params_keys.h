@@ -174,4 +174,5 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"dp_ford_bp_enable_lane_full_mode", {PERSISTENT, BOOL, "0"}},
     {"dp_ford_bp_custom_profile", {PERSISTENT, BOOL, "0"}},
     {"dp_ford_bp_l_c_p_i_d_gain_u_i", {PERSISTENT, FLOAT, "3.0"}},
+    {"dp_ford_stock_lon", {PERSISTENT, BOOL, "0"}},
 };

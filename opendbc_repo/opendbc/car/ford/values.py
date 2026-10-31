@@ -47,6 +47,7 @@ class FordSafetyFlags(IntFlag):
   LONG_CONTROL = 1
   CANFD = 2
   BLUEPILOT = 4
+  STOCK_ACC = 8
 
 
 class FordFlags(IntFlag):
@@ -54,6 +55,7 @@ class FordFlags(IntFlag):
   CANFD = 1
   ALT_STEER_ANGLE = 2
   BLUEPILOT = 4  # dynamic: selected at startup, paired with Panda safety flag
+  STOCK_ACC = 8  # dynamic: retain factory gas/brake control and manual resume
 
 
 class RADAR:

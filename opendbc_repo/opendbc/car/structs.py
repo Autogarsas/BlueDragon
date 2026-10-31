@@ -20,6 +20,7 @@ CarControlT = capnp.lib.capnp._StructModule
 CarParamsT = capnp.lib.capnp._StructModule
 
 class DPFlags:
+  FordStockLon = 2 ** 9
   FordBluePilot = 2 ** 8
   LatALKA = 1
   ExtRadar = 2

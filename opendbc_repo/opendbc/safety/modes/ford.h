@@ -134,6 +134,7 @@ static bool ford_get_quality_flag_valid(const CANPacket_t *msg) {
 static const AngleSteeringLimits FORD_BP_STEERING_LIMITS = FORD_BP_LIMITS(false);
 static const AngleSteeringLimits FORD_BP_CANFD_STEERING_LIMITS = FORD_BP_LIMITS(true);
 static bool ford_bluepilot = false;
+static bool ford_stock_acc = false;
 static int ford_bp_path_angle_last = 0;
 
 static bool ford_bp_extra_checks(int curvature, int path_angle, int path_offset, int curvature_rate,
@@ -275,6 +276,8 @@ static bool ford_tx_hook(const CANPacket_t *msg) {
     bool violation = false;
     violation |= ((msg->data[1] >> 0) & 1U) && !cruise_engaged_prev;   // Signal: CcAslButtnCnclPress (cancel)
     violation |= ((msg->data[3] >> 1) & 1U) && !controls_allowed;     // Signal: CcAsllButtnResPress (resume)
+    // Factory ACC owns stop/resume. Physical buttons still pass through unchanged.
+    violation |= ford_stock_acc && GET_BIT(msg, 25U);
 
     if (violation) {
       tx = false;
@@ -365,6 +368,7 @@ static bool ford_tx_hook(const CANPacket_t *msg) {
 static safety_config ford_init(uint16_t param) {
   alka_allowed = true;  // dp - ALKA enabled for Ford
   ford_bluepilot = GET_FLAG(param, 4U);
+  ford_stock_acc = GET_FLAG(param, 8U);
   ford_bp_path_angle_last = 0;
 
   // warning: quality flags are not yet checked in openpilot's CAN parser,
@@ -406,6 +410,11 @@ static safety_config ford_init(uint16_t param) {
     {FORD_LateralMotionControl, 0, 8, .check_relay = true},
   };
 
+  static const CanMsg FORD_STOCK_TX_MSGS[] = {
+    FORD_COMMON_TX_MSGS
+    {FORD_LateralMotionControl, 0, 8, .check_relay = true},
+  };
+
   const uint16_t FORD_PARAM_CANFD = 2;
   const bool ford_canfd = GET_FLAG(param, FORD_PARAM_CANFD);
 
@@ -417,14 +426,15 @@ static safety_config ford_init(uint16_t param) {
 #endif
 
   // Longitudinal is the default for CAN, and optional for CAN FD w/ ALLOW_DEBUG
-  ford_longitudinal = !ford_canfd || ford_longitudinal;
+  ford_longitudinal = (!ford_canfd || ford_longitudinal) && !ford_stock_acc;
 
   safety_config ret;
   if (ford_canfd) {
     ret = ford_longitudinal ? BUILD_SAFETY_CFG(ford_rx_checks, FORD_CANFD_LONG_TX_MSGS) : \
                               BUILD_SAFETY_CFG(ford_rx_checks, FORD_CANFD_STOCK_TX_MSGS);
   } else {
-    ret = BUILD_SAFETY_CFG(ford_rx_checks, FORD_LONG_TX_MSGS);
+    ret = ford_longitudinal ? BUILD_SAFETY_CFG(ford_rx_checks, FORD_LONG_TX_MSGS) : \
+                             BUILD_SAFETY_CFG(ford_rx_checks, FORD_STOCK_TX_MSGS);
   }
   return ret;
 }
