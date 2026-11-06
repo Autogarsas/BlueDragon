@@ -60,7 +60,9 @@ builds; a release build or invalid parameter pairing fails closed.
 
 LKA unavailability while the test is active releases commands and **latches the
 host controller for that engagement**. A temporary `latActive=false` cannot
-clear it; an actual disengagement is required. There are no periodic off pulses,
+clear it; an actual disengagement is required. The latch is also surfaced as
+a temporary steering fault and a steering warning, rather than showing effective
+steering as active after commands have stopped. There are no periodic off pulses,
 forced EPS resets, automatic rearm loops, watchdog defeats or firmware changes
 to conceal the interruption. A dropout may still come from bounds, eligibility,
 driver input, sensor freshness, or the rack; the logged reason distinguishes

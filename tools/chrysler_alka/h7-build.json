@@ -4,10 +4,10 @@
   "source_tree": "4b215a6e2b34a9fa72ce6f18799275f713a996b9",
   "build_command": "scons -C panda --site-dir=../site_scons -j2 board/obj/panda_h7.bin.signed",
   "compiler": "arm-none-eabi-gcc (15:13.2.rel1-2) 13.2.1 20231009",
-  "build_version": "DEV-1bc2cb72-DEBUG",
-  "firmware_bytes": 73080,
-  "firmware_sha256": "c0dbf4bc5cc29a961bc98330a60dd3ae6fe8a8b5cda1cf14ea2c8f65a10a56d5",
-  "firmware_signature_prefix": "62c8cc6e16dad297",
+  "build_version": "DEV-13771fee-DEBUG",
+  "firmware_bytes": 75076,
+  "firmware_sha256": "80d0802ea7c6f1d2a3babf23ffd7c8df24539d6e04161689d95d38a260db5355",
+  "firmware_signature_prefix": "764c60b546a29f95",
   "workflow_run": 41206649843,
   "workflow_artifact": 13045125049,
   "checksums": {
@@ -23,7 +23,7 @@
     "opendbc_repo/opendbc/safety/modes/chrysler_cusw.h": "ee8d3a3c3c860c29455ece5704c6a72932a63064fd6e1c795eff542593d330a6",
     "opendbc_repo/opendbc/safety/modes/defaults.h": "8c64e8970685a1a14e4c2a45bd47d25508bcc01df05215a1ba85972f6c7548fd",
     "opendbc_repo/opendbc/safety/modes/elm327.h": "aeb7c7a763d422cad072d1982585dab190a97593cc729cb528ac3e669241925e",
-    "opendbc_repo/opendbc/safety/modes/ford.h": "eeb59ca3c7dc839f939a4ba7deff905f5aded440ab432a86bb4d5751189d0daf",
+    "opendbc_repo/opendbc/safety/modes/ford.h": "cbf06a59356c5f0a13482f607577a5c29dcb4ffe75a66b995e20b1f9d667d69e",
     "opendbc_repo/opendbc/safety/modes/gm.h": "c68a5aea1391fe5fd5c89e5bc23c41aca489e278c7b6267cdca403126b5d508b",
     "opendbc_repo/opendbc/safety/modes/honda.h": "88cb8211c0affc6bbedbc866c36d7869be40c8082ed9fce2bb07a88d4fdbf869",
     "opendbc_repo/opendbc/safety/modes/hyundai.h": "cd6689bd8d2b949da4377684cea4e9da767013d5735c9cc8905a60d9305ba610",
@@ -149,16 +149,20 @@
     "panda/board/sys/power_saving.h": "3adb6f4724fa0aa22ed94f50f47913fe422b43ee7f6fd907210efd447f0bc467",
     "panda/board/sys/sys.h": "3bcbdcffbaaede4c21db9da148520f27638c17247dc30b7cc3f3f564a0f9da64",
     "panda/board/utils.h": "332522eac8e044dd98e42aef8c27acc076780bbc028c1098631ed5b2bf685767",
-    "panda/python/constants.py": "aedb349236a89e58e90891dcd05627f6a4558d69832f49b055417e2520e72fdb"
+    "panda/python/constants.py": "aedb349236a89e58e90891dcd05627f6a4558d69832f49b055417e2520e72fdb",
+    "opendbc_repo/opendbc/safety/modes/ford_legacy_lka.h": "4b9c62f22e9be3c589ede0210e7316a134e6ad854af075c4bad2f68785415fa4"
   },
   "validation": {
-    "tests_run": 487,
-    "passed": 443,
+    "tests_run": 538,
+    "passed": 494,
     "skipped": 44,
     "ford_equivalence_frames": 10000,
     "chrysler_alka_off_equivalence_frames": 6000,
     "hardware_flash_tested": false,
     "road_tested": false,
-    "ford_factory_acc_steering_equivalence_updates": 4000
-  }
+    "ford_factory_acc_steering_equivalence_updates": 4000,
+    "ford_legacy_lka_native_host_integration": true
+  },
+  "build_source_commit": "13771fee2828a7b1a3614f65542e30d006d07183",
+  "build_workflow_run": 42230506114
 }

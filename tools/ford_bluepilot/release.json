@@ -1,7 +1,7 @@
 {
   "project": "BlueDragon",
-  "version": "1.1-dev3",
-  "channel": "ford-stock-acc",
+  "version": "1.1-dev4-lka",
+  "channel": "ford-lka-option",
   "base_integration": "37666613d40505461f457c002a4fdd40686b9d89",
   "dragonpilot_base": "3e8edb7e3d6d8fb0393f0604ee3954ee328857f5",
   "bluepilot_source": "c6f8350f17c0622d7a075fe03ae760425e68fd2c",
@@ -10,7 +10,7 @@
     "path": "common/params_pyx.so",
     "architecture": "aarch64",
     "python": "CPython 3.12",
-    "sha256": "2969cd672105891bba39ce3c215cea452e985a569c27c85060746edd6a53dd75",
+    "sha256": "cf01554fc9ec5a37533b08df0701974978defc19c2d13aa7975219e575f0827c",
     "bytes": 1341664,
     "compiler": "Native ARM Ubuntu clang++ / GNU C++ ABI",
     "source_commit": "c0ab3550eca2e9daf197c46b7e4b24aa9637cf2e",
@@ -28,7 +28,7 @@
     "sources": {
       "common/params_pyx.cpp": "577696ab0bdf6536f5e3fafc0a226869bf7f9c6f540071a5dc422b01a053e49b",
       "common/params.h": "7085d5ab842acac40fb2844c112869bff9698bbc5bebac2db6dd9485ed985364",
-      "common/params_keys.h": "3b1a6cc849a7d1d658e4cecb3327a504f7c2d4c7bd539e63c0ae289bae6c0c5c",
+      "common/params_keys.h": "bed0749c60cbaeb74d76d412f279a86fe11dcda19e610cf712ed5dcfafc5cb6a",
       "common/util.h": "49db7a80478fb44be3a03ee5224775fa15e62a03f982152eae15f0a4dc5cceea",
       "common/swaglog.h": "bcc65e78e40b45366f393fea51286b83ec75792e38c44914f89e3912f5a6841b",
       "system/hardware/hw.h": "afc36d60417dbaf1683d17f10b32306c1d69f58816a6dad09c8da24484249da7",
@@ -43,25 +43,25 @@
     },
     "validation": {
       "runtime": "Native aarch64 Ubuntu CPython 3.12.15",
-      "registered_keys": 169,
+      "registered_keys": 170,
       "ford_keys": 11,
       "checks": "all declared keys; defaults; isolated bool/float/bytes storage; clear flags; rejection of unknown keys",
       "required_glibc_max": "2.38",
       "required_glibcxx_max": "3.4.30",
       "device_fresh_install_tested": false
     },
-    "build_source_commit": "1bc2cb725f2dfc202a57397ee48e1bbc3f8b85e1"
+    "build_source_commit": "13771fee2828a7b1a3614f65542e30d006d07183"
   },
   "panda_h7": {
     "path": "panda/board/obj/panda_h7.bin.signed",
-    "sha256": "c0dbf4bc5cc29a961bc98330a60dd3ae6fe8a8b5cda1cf14ea2c8f65a10a56d5",
-    "version": "DEV-1bc2cb72-DEBUG",
-    "signature_prefix": "62c8cc6e16dad297",
+    "sha256": "80d0802ea7c6f1d2a3babf23ffd7c8df24539d6e04161689d95d38a260db5355",
+    "version": "DEV-13771fee-DEBUG",
+    "signature_prefix": "764c60b546a29f95",
     "build_manifest": "tools/chrysler_alka/h7-build.json",
     "device_flash_signature_verified": false,
     "same_image_as_user_tested_repair": false
   },
-  "validation_limits": "487 host/native safety tests: 443 passed, 44 inherited skips. Factory ACC steering CAN equivalence passed for 4000 updates. Native ARM settings-library tests passed for 169 keys. Matched H7 application and package hashes verified. Device/road testing pending.",
+  "validation_limits": "538 host/native tests: 494 passed, 44 inherited skips. ARM settings 170 keys passed. Matched signed H7 package verified; vehicle response/sign and lockout cause unverified.",
   "repository": "Autogarsas/BlueDragon",
   "installer": {
     "path": "installer/bluedragon-dev",
@@ -92,5 +92,19 @@
     "release_manifest": "tools/ford_stock_acc/release.json",
     "road_tested": false
   },
-  "installation_method": "Parked SSH branch switch; existing installer continues to install bluedragon-dev"
+  "installation_method": "Parked SSH branch switch; existing installer continues to install bluedragon-dev",
+  "legacy_lka": {
+    "setting": "dp_ford_legacy_lka",
+    "default": false,
+    "safety_param": 24,
+    "supported_profile": "FORD_EDGE_MK2",
+    "reference_scale_status": "historical conversion; limited raw authority; vehicle calibration/sign unverified",
+    "test_speed_mps": [
+      15,
+      30
+    ],
+    "max_reference_raw_signed": 128,
+    "max_curvature_per_m": 0.0015,
+    "interruption_policy": "latch until actual disengagement; no periodic resets or automatic rearm"
+  }
 }

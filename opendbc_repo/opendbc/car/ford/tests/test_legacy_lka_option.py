@@ -155,6 +155,23 @@ class TestLegacyLKAOption(unittest.TestCase):
     cs.update(parsers)
     self.assertAlmostEqual(3.4, cs.legacy_lka_feedback['wheel_angle_deg'])
     self.assertEqual(1_000_000_000, cs.legacy_lka_feedback['wheel_time_nanos'])
+    cs.legacy_lka_latched = True
+    self.assertTrue(cs.update(parsers).steerFaultTemporary)
+    cs.legacy_lka_latched = False
+    self.assertFalse(cs.update(parsers).steerFaultTemporary)
+
+  def test_controller_exposes_latch_for_driver_warning_until_disengaged(self):
+    cp = params(legacy=True); controller = CarController(DBC[cp.carFingerprint], cp)
+    cs = state(cp); cc = structs.CarControl(enabled=True, latActive=True)
+    controller.update(cc.as_reader(), cs, 1_000_000_000)
+    self.assertFalse(cs.legacy_lka_latched)
+    controller.frame = 3
+    cs.legacy_lka_feedback.update(availability=1, time_nanos=1_030_000_000, wheel_time_nanos=1_030_000_000)
+    controller.update(cc.as_reader(), cs, 1_030_000_000)
+    self.assertTrue(cs.legacy_lka_latched)
+    controller.frame = 6; cc.enabled = cc.latActive = False
+    controller.update(cc.as_reader(), cs, 1_060_000_000)
+    self.assertFalse(cs.legacy_lka_latched)
 
   def test_invalid_stale_override_speed_and_fault_inputs(self):
     cp = params(legacy=True)

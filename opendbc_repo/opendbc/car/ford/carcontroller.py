@@ -168,6 +168,7 @@ class CarController(CarControllerBase):
     if (self.frame % CarControllerParams.LKA_STEP) == 0:
       if self.legacy_lka is not None:
         command = self.legacy_lka.update(CC, CS, now_nanos)
+        CS.legacy_lka_latched = self.legacy_lka.latched
         can_sends.append(fordcan.create_legacy_lka_msg(self.CAN, command))
         self.apply_curvature_last = -command.curvature_raw * 0.000005
       else:

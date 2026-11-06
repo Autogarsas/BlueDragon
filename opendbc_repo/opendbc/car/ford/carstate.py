@@ -148,6 +148,7 @@ class CarState(CarStateBase):
         "wheel_time_nanos": wheel.ts_nanos["Steering_Wheel_Data_CG1"]["SteWhlRelInit_An_Sns"],
       }
       ret.steerFaultTemporary |= status["LaActAvail_D_Actl"] not in (2, 3) or bool(status["LaActDeny_B_Actl"])
+      ret.steerFaultTemporary |= getattr(self, "legacy_lka_latched", False)
 
     return ret
 
