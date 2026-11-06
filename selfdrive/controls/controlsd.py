@@ -227,7 +227,9 @@ class Controls:
                          (self.sm['selfdriveState'].state == State.softDisabling))
 
     lat_tuning = self.CP.lateralTuning.which()
-    if self.CP.steerControlType == car.CarParams.SteerControlType.angle:
+    if self.CP.brand == 'ford' and self.CP.flags & FordFlags.FUSION_LKA_PORT:
+      cs.lateralControlState.pidState = lac_log
+    elif self.CP.steerControlType == car.CarParams.SteerControlType.angle:
       cs.lateralControlState.angleState = lac_log
     elif lat_tuning == 'pid':
       cs.lateralControlState.pidState = lac_log

@@ -144,6 +144,26 @@ class TestFusionPortHost(unittest.TestCase):
     self.assertAlmostEqual(.01, self.cp.lateralTuning.pid.kpV[0], places=6)
     self.assertAlmostEqual(1/87., self.cp.lateralTuning.pid.kf, places=7)
 
+  def test_controlsd_publishes_port_pid_telemetry_with_the_correct_wire_schema(self):
+    source = ast.parse((ROOT / 'selfdrive/controls/controlsd.py').read_text())
+    controls = next(n for n in source.body if isinstance(n, ast.ClassDef) and n.name == 'Controls')
+    publish = next(n for n in controls.body if isinstance(n, ast.FunctionDef) and n.name == 'publish')
+    start = next(i for i, n in enumerate(publish.body) if isinstance(n, ast.Assign)
+                 and any(isinstance(t, ast.Name) and t.id == 'lat_tuning' for t in n.targets))
+    production = ast.Module(body=publish.body[start:start+2], type_ignores=[])
+    for cp, schema, expected in [
+      (self.cp, log.ControlsState.LateralPIDState, 'pidState'),
+      (params(legacy=False), log.ControlsState.LateralAngleState, 'angleState'),
+    ]:
+      message = log.Event.new_message();message.init('controlsState')
+      namespace = {'self': NS(CP=cp), 'cs': message.controlsState,
+                   'lac_log': schema.new_message(active=True), 'car': car, 'FordFlags': FordFlags}
+      exec(compile(ast.fix_missing_locations(production), '<production controlsd telemetry>', 'exec'), namespace)
+      restored = log.Event.from_bytes(message.to_bytes())
+      with restored as event:
+        self.assertEqual(expected, event.controlsState.lateralControlState.which())
+        self.assertTrue(getattr(event.controlsState.lateralControlState, expected).active)
+
   def test_lka_stream_is_100_hz_without_active_lca_or_acceleration(self):
     controller = CarController(DBC[self.cp.carFingerprint], self.cp)
     self.cc.actuators.torque = .005

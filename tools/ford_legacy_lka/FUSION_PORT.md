@@ -73,10 +73,17 @@ the port, using the pinned DBC. Separate compiled C safety tests receive the
 host's encoded stream, including the recorded camera/SCCM offset scenario.
 Stock Ford, BluePilot, factory ACC and Pacifica regressions remain in CI.
 
-`package_status: native-build-pending` is deliberately not installable. The
-installer and firmware checker reject it until a matching signed H7 artifact,
-its signature and all source checksums have been packaged and verified.
-The existing settings library is unchanged; no new setting key is required.
+The paired package contains `DEV-f9077bf7-DEBUG`, signature prefix
+`58099a12bb5fe036`, from workflow run `42282707768`. The artifact ZIP digest,
+signed firmware digest, RSA signature, source checksums and existing ARM
+settings library are verified by the release checker. The H7 build source is
+pinned separately from subsequent host telemetry and packaging changes.
+The installer refuses an unpaired source revision. The existing settings
+library is unchanged; no new setting key is required.
+
+The modern controller publishes the port's native PID telemetry through
+`pidState`, while retaining the Ford angle-control platform type. A wire-schema
+regression checks both that path and the existing stock angle telemetry.
 
 Offline packet equivalence and native acceptance do not prove physical steering
 response or identify an EPS duration limit. Vehicle validation remains a
