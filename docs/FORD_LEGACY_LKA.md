@@ -7,15 +7,65 @@ that the vehicle is supported for live LKA control.
 
 ## Current stage
 
-The `ford-legacy-lka` branch provides passive CAN capture, two explicit DBC
-interpretations, bounded offline byte fixtures, and regression tests. It does
-**not yet implement a live LKA steering mode or a device settings toggle**.
-Existing LCA/BluePilot, factory ACC, parameters and bundled Panda firmware are
-unchanged. Capturing data does not require changing the installed branch.
+The original `ford-legacy-lka` branch provides passive CAN capture, two explicit
+DBC interpretations, bounded offline byte fixtures, and regression tests.
+
+The separate `ford-lka-option` development branch adds a restart-selected
+**Legacy LKA Research — Steering Disabled** option, default OFF. OFF retains the
+existing LCA/BluePilot configuration. ON sets the Ford research flag, forces
+factory longitudinal ownership, disables BluePilot, sets `dashcamOnly`, selects
+Panda `noOutput`, and prevents the controller from emitting **any** host CAN even
+if called directly. It is **not an active LKA implementation** and cannot test
+the firmware's activity timeout. It must never be presented as available LKA
+steering, nor silently fall back to LCA when selected.
+
+The setting is `dp_ford_legacy_lka`, a persistent boolean read once by `card` at
+startup. Its saved value does not change a running controller. Turning it OFF
+and restarting restores the prior BluePilot and factory-ACC choices; those
+saved choices are not rewritten. Other vehicle brands ignore the Ford flag.
+
+This is source development, **not a device installation release**. The inherited
+`common/params_pyx.so` has 169 keys and does not contain this new key. The new ARM
+CI job builds and checks a 170-key library artifact, but it must be packaged
+with refreshed release manifests before installing this branch. The inherited
+factory-ACC verifier correctly rejects changed source checksums. Do not bypass
+it or reuse the factory-ACC installation instructions on this branch.
+
+The existing H7 firmware is unchanged and continues to reject active LKA
+requests. Capturing data still does not require changing the installed branch.
 
 This first stage gathers the evidence needed to implement a separately selected
 LKA controller and its paired Panda limits. Copying the old fork directly would
 leave an unresolved units/sign ambiguity on these two particular racks.
+
+## Fusion evidence reviewed on 6 November 2026
+
+The complete uploaded `/data/fusion-lka-before.json` has SHA-256
+`19848b4b7f50a602840dfad3d8d89204aa3f6236bf0e7a95b91d20cd3c3efa94`.
+It contains 30,637 frames, 200 Panda samples, no capture errors or truncation,
+and no host `sendcan`, `carState`, or `carControl` samples. All Panda samples
+were `noOutput`, parameter 0, with ignition true; the owner subsequently
+confirmed forced offroad mode was enabled during this capture.
+
+On each of buses 0 and 2, all 667 LKA frames were `1f80080000000000`, all 667
+status frames were `9000000000000000`, and all 400 LCA frames were
+`7d10007ce0801000`. The newer Ford DBC decodes the LKA packet as no intervention,
+zero reference, and zero curvature. Status availability is 1, denial is false;
+the LCA request is inactive. These neutral packets favor the newer neutral
+layout but do not establish active scale, direction, driver override, or EPS
+acceptance. They are not an active lockout recording.
+
+The shared handoff identifies the Fusion's latest recorded PSCM baseline as
+`K2GC-14D003-AH` / `K2GC-14D007-CD`, hardware `KK1C-14F079-AA`, with IPMA
+`LM2T-14F397-AA` / `L1TT-14F397-BD` (saved UCDS reads from 1 November).
+These IDs are not evidence that an untested active encoder is correct.
+
+After forced offroad was disabled, the owner reported live car services,
+valid CAN, no ACC fault, no openpilot longitudinal activity, and Ford safety
+parameter 12. A `ford-stock-acc` startup log reports H7
+`DEV-1bc2cb72-DEBUG` with matching loaded/expected signature prefix
+`62c8cc6e16dad297`. That validates the existing LCA/factory-ACC installation
+checks, not active legacy LKA or a firmware lockout fix.
 
 ## Protocol evidence
 
@@ -97,7 +147,9 @@ to select each vehicle's signal layout, sign and angle conversion. If cached
 firmware IDs are absent or stale, read the current module identification through
 the owner's diagnostic tool before selecting a control configuration.
 
-Then add a startup-selected LKA controller and matching Panda safety mode,
+The research selector is now staged, but is deliberately gated. Next implement
+the active LKA controller and matching Panda safety mode only after validating
+the active protocol,
 including independent bounds/rate/error checks, driver takeover/disengagement,
 freshness and permission checks, and exclusion of simultaneous LCA commands.
 Keep the current LCA mode as default and retain factory longitudinal ownership
@@ -117,8 +169,14 @@ Run the passive, DBC-conformance and unchanged Panda-rejection tests:
 PYTHONPATH=.:opendbc_repo python3 -m unittest tools.ford_legacy_lka.test_research tools.ford_legacy_lka.test_dbc tools.ford_legacy_lka.test_passive_safety
 ```
 
-The branch also runs the existing Ford/factory-ACC/BluePilot and Pacifica suites
+The original passive branch also runs the existing Ford/factory-ACC/BluePilot and Pacifica suites
 and verifies the unchanged bundled release. Local validation ran 509 tests
 (465 passed, 44 inherited skips), including 22 research tests and 288 combinations
 of active offline fixtures that the existing Panda safety correctly rejects.
 No firmware-lockout fix or on-device capture validation is claimed.
+
+The option branch additionally tests default selection, noOutput and direct
+controller gates, all Ford platform/setting combinations, byte-for-byte
+restoration of original CarParams after deselection, and unchanged Pacifica
+parameters. Native safety tests continue to prove active legacy requests are
+rejected by the unchanged firmware.

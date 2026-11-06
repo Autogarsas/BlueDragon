@@ -79,6 +79,13 @@ class CarController(CarControllerBase):
     self.distance_bar_frame = 0
 
   def update(self, CC, CS, now_nanos):
+    if self.CP.flags & FordFlags.LEGACY_LKA:
+      # Defense in depth: no host steering, ACC, UI or button commands, even if
+      # called directly instead of through card's passive/dashcamOnly gate.
+      output = CC.actuators.as_builder()
+      output.curvature = output.accel = output.gas = 0.0
+      return output, []
+
     can_sends = []
 
     actuators = CC.actuators

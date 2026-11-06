@@ -15,6 +15,7 @@ from opendbc.car import DT_CTRL, structs
 from opendbc.car.can_definitions import CanData, CanRecvCallable, CanSendCallable
 from opendbc.car.carlog import carlog
 from opendbc.car.fw_versions import ObdCallback
+from opendbc.car.ford.values import FordFlags
 from opendbc.car.car_helpers import get_car, interfaces
 from opendbc.car.interfaces import CarInterfaceBase, RadarInterfaceBase
 if "TICI_DOS" in os.environ:
@@ -110,6 +111,9 @@ class Car:
       if self.params.get_bool("dp_ford_stock_lon"):
         dp_params |= structs.DPFlags.FordStockLon
 
+      if self.params.get_bool("dp_ford_legacy_lka"):
+        dp_params |= structs.DPFlags.FordLegacyLKA
+
       if self.params.get_bool("dp_lat_alka"):
         dp_params |= structs.DPFlags.LatALKA
 
@@ -152,7 +156,7 @@ class Car:
 
     self.CP.alternativeExperience = 0
     # dp - ALKA: set alternative experience flag if ALKA is enabled
-    if dp_params & structs.DPFlags.LatALKA:
+    if dp_params & structs.DPFlags.LatALKA and not (self.CP.brand == "ford" and self.CP.flags & FordFlags.LEGACY_LKA):
       self.CP.alternativeExperience |= ALTERNATIVE_EXPERIENCE.ALKA
 
     openpilot_enabled_toggle = self.params.get_bool("OpenpilotEnabledToggle")

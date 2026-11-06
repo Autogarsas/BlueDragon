@@ -50,11 +50,12 @@ class CarInterface(CarInterfaceBase):
     if CAN.main >= 4:
       cfgs.insert(0, get_safety_config(structs.CarParams.SafetyModel.noOutput))
     ret.safetyConfigs = cfgs
-    if dp_params & structs.DPFlags.FordBluePilot:
+    legacy_lka = bool(dp_params & structs.DPFlags.FordLegacyLKA)
+    if dp_params & structs.DPFlags.FordBluePilot and not legacy_lka:
       ret.flags |= int(FordFlags.BLUEPILOT)
       ret.safetyConfigs[-1].safetyParam |= int(FordSafetyFlags.BLUEPILOT)
 
-    stock_acc = bool(dp_params & structs.DPFlags.FordStockLon)
+    stock_acc = legacy_lka or bool(dp_params & structs.DPFlags.FordStockLon)
     ret.alphaLongitudinalAvailable = ret.radarUnavailable and not stock_acc
     if stock_acc:
       ret.flags |= int(FordFlags.STOCK_ACC)
@@ -105,4 +106,16 @@ class CarInterface(CarInterfaceBase):
 
     ret.autoResumeSng = ret.minEnableSpeed == -1. and not stock_acc
     ret.centerToFront = ret.wheelbase * 0.44
+
+    if legacy_lka:
+      # The parked Fusion capture establishes neutral bytes, not the active
+      # reference-angle scale/sign or EPS acceptance. Never substitute LCA or
+      # silently enable a guessed LKA layout when this research mode is selected.
+      # A future validated controller must be paired with independent Panda
+      # limits before this gate can be replaced. This is not a live LKA port.
+      ret.flags |= int(FordFlags.LEGACY_LKA)
+      ret.dashcamOnly = True
+      ret.steerAtStandstill = False
+      ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.noOutput)]
+      carlog.warning('Legacy LKA research selected: steering disabled pending active protocol validation')
     return ret
