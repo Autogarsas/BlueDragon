@@ -296,6 +296,14 @@ class Car:
       self.pm.send('sendcan', can_list_to_can_capnp(can_sends, msgtype='sendcan', valid=CS.canValid))
       if self.ford_bp is not None:
         self.ford_bp.log_diagnostics()
+      legacy = getattr(self.CI.CC, "legacy_lka", None) if self.CP.brand == "ford" else None
+      if legacy is not None and legacy.diagnostics.get("command_time_nanos") == now_nanos:
+        # Every emitted LKA packet, including the first interruption/latch, is
+        # observationally logged. A logging failure cannot affect actuation.
+        try:
+          cloudlog.event("bluedragon_ford_legacy_lka", **legacy.diagnostics)
+        except Exception:
+          pass
 
       self.CC_prev = CC
 

@@ -60,7 +60,17 @@ def add_event(session: Session, event):
   elif kind == "carControl":
     c = event.carControl
     session.add_state({"kind": kind, "mono_ns": int(event.logMonoTime), "valid": bool(event.valid),
-                       "lat_active": c.latActive, "desired_curvature": finite(c.actuators.curvature)})
+                       "enabled": c.enabled, "lat_active": c.latActive,
+                       "desired_curvature": finite(c.actuators.curvature)})
+  elif kind == "logMessage":
+    try:
+      record = json.loads(event.logMessage)
+      data = record.get("msg", {})
+      if isinstance(data, dict) and data.get("event") == "bluedragon_ford_legacy_lka":
+        session.add_state({"kind": "legacyLkaCommand", "mono_ns": int(event.logMonoTime),
+                           "valid": bool(event.valid), "command": data})
+    except (ValueError, TypeError, AttributeError):
+      pass
   elif kind == "pandaStates":
     session.add_state({"kind": kind, "mono_ns": int(event.logMonoTime), "valid": bool(event.valid),
                        "pandas": [{"ignition": p.ignitionLine or p.ignitionCan,
@@ -90,7 +100,7 @@ def read_logs(session: Session, paths: list[str]):
 
 def listen(session: Session, seconds: float):
   from cereal import messaging
-  streams = ("can", "sendcan", "carState", "carControl", "pandaStates")
+  streams = ("can", "sendcan", "carState", "carControl", "pandaStates", "logMessage")
   sockets = {name: messaging.sub_sock(name, timeout=0) for name in streams}
   end = time.monotonic() + seconds
   try:
@@ -119,16 +129,21 @@ def main(argv=None):
   parser.add_argument("--vehicle", choices=VEHICLES, required=True)
   parser.add_argument("--label", choices=("baseline", "before", "after"), default="baseline")
   parser.add_argument("--seconds", type=float, default=20)
+  parser.add_argument("--max-frames", type=int, default=200000,
+                      help="Retained frame limit (1-200000); truncation is explicit")
   parser.add_argument("--log", nargs="+", help="Local recorded rlog/qlog paths instead of live listening")
   parser.add_argument("--output", type=Path, required=True)
   parser.add_argument("--root", type=Path, default=Path("/data/openpilot"))
   args = parser.parse_args(argv)
   if not math.isfinite(args.seconds) or not 1 <= args.seconds <= 300:
     parser.error("--seconds must be finite and between 1 and 300")
-  session = Session(args.vehicle, args.label)
+  if not 1 <= args.max_frames <= 200000:
+    parser.error("--max-frames must be between 1 and 200000")
+  session = Session(args.vehicle, args.label, max_frames=args.max_frames)
   info = metadata(args.root)
   info["source"] = "recorded_logs" if args.log else "live_subscribers"
   info["requested_seconds"] = None if args.log else args.seconds
+  info["max_frames"] = args.max_frames
   # Reserve the output first: never listen and then overwrite an existing report.
   with args.output.open("x") as out:
     try:
@@ -147,6 +162,7 @@ def main(argv=None):
   print(json.dumps({"output": str(args.output), "vehicle_label": args.vehicle,
                     "frames": len(session.frames), "states": len(session.states),
                     "truncated": session.truncated, "errors": session.errors,
+                    "states_truncated": session.states_truncated,
                     "installed_branch": info.get("git_branch"),
                     "loaded_profile": info.get("car_params", {}).get("profile"),
                     "cached_identification": info.get("car_params", {}).get("cached"),

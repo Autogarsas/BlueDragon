@@ -6,7 +6,7 @@ from opendbc.car.ford.carcontroller import CarController
 from opendbc.car.ford.carstate import CarState
 from opendbc.car.ford.fordcan import CanBus
 from opendbc.car.ford.radar_interface import RadarInterface
-from opendbc.car.ford.values import CarControllerParams, DBC, Ecu, FordFlags, RADAR, FordSafetyFlags
+from opendbc.car.ford.values import CAR, CarControllerParams, DBC, Ecu, FordFlags, RADAR, FordSafetyFlags
 from opendbc.car.interfaces import CarInterfaceBase
 
 TransmissionType = structs.CarParams.TransmissionType
@@ -108,14 +108,15 @@ class CarInterface(CarInterfaceBase):
     ret.centerToFront = ret.wheelbase * 0.44
 
     if legacy_lka:
-      # The parked Fusion capture establishes neutral bytes, not the active
-      # reference-angle scale/sign or EPS acceptance. Never substitute LCA or
-      # silently enable a guessed LKA layout when this research mode is selected.
-      # A future validated controller must be paired with independent Panda
-      # limits before this gate can be replaced. This is not a live LKA port.
       ret.flags |= int(FordFlags.LEGACY_LKA)
-      ret.dashcamOnly = True
       ret.steerAtStandstill = False
-      ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.noOutput)]
-      carlog.warning('Legacy LKA research selected: steering disabled pending active protocol validation')
+      ret.minSteerSpeed = 15.0
+      if candidate != CAR.FORD_EDGE_MK2 or ret.flags & FordFlags.CANFD:
+        ret.dashcamOnly = True
+        ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.noOutput)]
+        carlog.error('Legacy LKA test mode supports only the Fusion retrofit/Edge MK2 profile')
+      else:
+        # A distinct, canonical Panda configuration; never inherit BluePilot,
+        # CAN FD, OP longitudinal or ALKA authority in this test mode.
+        ret.safetyConfigs[-1].safetyParam = int(FordSafetyFlags.STOCK_ACC | FordSafetyFlags.LEGACY_LKA)
     return ret

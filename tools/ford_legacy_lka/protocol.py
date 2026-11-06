@@ -14,7 +14,7 @@ VEHICLES = {
 
 # Include both candidate steering/speed sources. An address alone cannot identify
 # the layout: 0x76 has a different meaning in the two DBCs, for example.
-WATCH_IDS = frozenset((0x76, 0x82, 0x83, 0x8A, 0x91, 0x165, 0x202, 0x204,
+WATCH_IDS = frozenset((0x76, 0x7E, 0x82, 0x83, 0x85, 0x8A, 0x91, 0x165, 0x202, 0x204,
                        0x217, 0x246, 0x3A8, 0x3CA, 0x3CC, 0x3D3, 0x3D6, 0x415))
 LAYOUTS = ("fusion_2018", "ford_base")
 
@@ -88,6 +88,7 @@ class Session:
       raise ValueError("Invalid capture frame limit")
     self.vehicle, self.label, self.max_frames = vehicle, label, max_frames
     self.frames, self.states, self.errors = [], [], []
+    self.states_truncated = False
     self.counts = Counter()
     self.truncated = False
 
@@ -114,10 +115,12 @@ class Session:
     self.frames.append(row)
 
   def add_state(self, state: dict):
-    # A 300-second capture at 10Hz stays below this bound. CAN evidence remains
-    # independent of carState, which may be absent on an unrecognized MKZ.
-    if len(self.states) < 4000:
+    # Retain a full minute of carState/carControl at 100Hz plus Panda/command
+    # diagnostics. Longer captures explicitly report state truncation.
+    if len(self.states) < 20000:
       self.states.append(state)
+    else:
+      self.states_truncated = True
 
   def report(self, metadata: dict | None = None) -> dict:
     groups = defaultdict(list)
@@ -154,10 +157,12 @@ class Session:
     return {
       "format": "bluedragon-ford-lka-evidence-v1", "vehicle_label": self.vehicle,
       "vehicle_label_is_not_fingerprinting": True, "reported_setup": VEHICLES[self.vehicle], "label": self.label,
-      "capture_sends_can": False, "live_lka_mode_implemented": False,
+      "capture_sends_can": False, "live_lka_mode_implemented": None,
+      "collector_is_not_host_feature_detection": True,
       "layout_confirmed": False, "eps_acceptance_proven": False,
       "interpretation": "DBC views are hypotheses. Received/host TX frames and availability do not prove EPS execution or lockout removal.",
       "metadata": metadata or {}, "truncated": self.truncated, "errors": self.errors,
+      "states_truncated": self.states_truncated,
       "counts": [{"stream": s, "bus": b, "address": hex(a), "count": n}
                  for (s, b, a), n in sorted(self.counts.items())],
       "status_observations": status, "states": self.states, "frames": self.frames,

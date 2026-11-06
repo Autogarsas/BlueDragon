@@ -48,6 +48,7 @@ class FordSafetyFlags(IntFlag):
   CANFD = 2
   BLUEPILOT = 4
   STOCK_ACC = 8
+  LEGACY_LKA = 16
 
 
 class FordFlags(IntFlag):
@@ -56,7 +57,7 @@ class FordFlags(IntFlag):
   ALT_STEER_ANGLE = 2
   BLUEPILOT = 4  # dynamic: selected at startup, paired with Panda safety flag
   STOCK_ACC = 8  # dynamic: retain factory gas/brake control and manual resume
-  LEGACY_LKA = 16  # dynamic: research selection; active protocol is not validated
+  LEGACY_LKA = 16  # dynamic: limited-authority legacy LKA test controller
 
 
 class RADAR:

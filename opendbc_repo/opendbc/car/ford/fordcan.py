@@ -45,6 +45,24 @@ def create_lka_msg(packer, CAN: CanBus):
   return packer.make_can_msg("Lane_Assist_Data1", CAN.main, {})
 
 
+def create_legacy_lka_msg(CAN: CanBus, command):
+  """Encode only the observed ordinary LKA actions; no override/quick ramp/LDW.
+
+  Raw counts avoid silently applying the newer DBC's different reference units.
+  The native Panda independently checks the same raw bounds and sensor error.
+  """
+  action, reference, curvature = command.action, command.reference_raw, command.curvature_raw
+  if action not in (0, 2, 4) or not -128 <= reference <= 128 or not -300 <= curvature <= 300:
+    raise ValueError("Legacy LKA command outside test authority")
+  if action == 0 and (reference != 0 or curvature != 0):
+    raise ValueError("Inactive legacy LKA must be neutral")
+  reference += 2048
+  curvature += 2048
+  data = bytes(((action << 5) | 3, curvature >> 4,
+                ((curvature & 15) << 4) | (reference >> 8), reference & 255, 0, 0, 0, 0))
+  return 0x3CA, data, CAN.main
+
+
 def create_lat_ctl_msg(packer, CAN: CanBus, lat_active: bool, path_offset: float, path_angle: float, curvature: float,
                        curvature_rate: float, ramp_type: int = 0, precision_type: int = 1):
   """

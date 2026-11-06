@@ -1,4 +1,4 @@
-name: Ford LKA research option checks
+name: Ford legacy LKA tests and device builds
 
 on:
   push:
@@ -11,17 +11,18 @@ permissions:
   contents: read
 
 concurrency:
-  group: ford-lka-option-${{ github.ref }}
+  group: ford-lka-option-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
-  option-and-regressions:
+  safety-and-h7:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           sparse-checkout: |
             cereal
             common
@@ -43,14 +44,37 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install dependencies
-        run: python -m pip install numpy pycapnp==2.2.4 cffi pycryptodome scons==4.11.1
+        run: |
+          sudo apt-get update -qq -o Acquire::Retries=0 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 -o Dir::Etc::sourcelist=sources.list.d/ubuntu.sources -o Dir::Etc::sourceparts=-
+          sudo apt-get install -y --no-install-recommends gcc-arm-none-eabi libnewlib-dev
+          python -m pip install numpy pycapnp==2.2.4 cffi pycryptodome scons==4.11.1
       - name: Check option, passive tools and Ford/Pacifica regressions
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/opendbc_repo
         run: |
-          python -m unittest -q opendbc.car.ford.tests.test_legacy_lka_option tools.ford_legacy_lka.test_research tools.ford_legacy_lka.test_dbc tools.ford_legacy_lka.test_passive_safety opendbc.car.ford.tests.test_factory_acc opendbc.car.ford.tests.test_bluepilot opendbc.safety.tests.test_ford_factory_acc opendbc.safety.tests.test_ford_bluepilot opendbc.safety.tests.test_ford opendbc.car.chrysler.tests.test_alka opendbc.safety.tests.test_chrysler_alka opendbc.safety.tests.test_chrysler opendbc.safety.tests.test_alka.TestALKAFord opendbc.safety.tests.test_alka.TestALKADisabledBrands
+          python -m unittest -q opendbc.car.ford.tests.test_legacy_lka_option opendbc.safety.tests.test_ford_legacy_lka tools.ford_legacy_lka.test_research tools.ford_legacy_lka.test_dbc tools.ford_legacy_lka.test_passive_safety opendbc.car.ford.tests.test_factory_acc opendbc.car.ford.tests.test_bluepilot opendbc.safety.tests.test_ford_factory_acc opendbc.safety.tests.test_ford_bluepilot opendbc.safety.tests.test_ford opendbc.car.chrysler.tests.test_alka opendbc.safety.tests.test_chrysler_alka opendbc.safety.tests.test_chrysler opendbc.safety.tests.test_alka.TestALKAFord opendbc.safety.tests.test_alka.TestALKADisabledBrands
           python -m compileall -q selfdrive/car/card.py dragonpilot/settings/brand-ford-legacy-lka.py tools/ford_legacy_lka/check_option.py
-          git diff --exit-code 5ddfdf0 HEAD -- opendbc_repo/opendbc/safety panda/board/obj/panda_h7.bin.signed
+      - name: Verify packaged release when source matches
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/opendbc_repo
+        run: |
+          if test -f tools/ford_legacy_lka/release.json; then python tools/ford_legacy_lka/verify_release.py; fi
+      - name: Build signed H7 application
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/opendbc_repo
+        run: |
+          scons -C panda --site-dir=../site_scons -j2 board/obj/panda_h7.bin.signed
+          git rev-parse HEAD > panda/board/obj/source_commit.txt
+          sha256sum panda/board/obj/panda_h7.bin.signed > panda/board/obj/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ford-legacy-lka-h7
+          if-no-files-found: error
+          path: |
+            panda/board/obj/panda_h7.bin.signed
+            panda/board/obj/source_commit.txt
+            panda/board/obj/SHA256SUMS
+            panda/board/obj/version
 
   settings-aarch64:
     runs-on: ubuntu-24.04-arm
@@ -59,6 +83,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           sparse-checkout: |
             cereal
             common

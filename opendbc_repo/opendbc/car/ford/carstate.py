@@ -23,6 +23,7 @@ class CarState(CarStateBase):
     self.steering_angle_offset_deg = None
     self.distance_button = 0
     self.lc_button = 0
+    self.legacy_lka_feedback = {}
 
   def update(self, can_parsers) -> structs.CarState:
     cp = can_parsers[Bus.pt]
@@ -136,13 +137,23 @@ class CarState(CarStateBase):
     # dp - ALKA: direct tracking - lkas_on follows acc_main (cruiseState.available)
     self.lkas_on = ret.cruiseState.available
 
+    if self.CP.flags & FordFlags.LEGACY_LKA:
+      status = cp.vl["Lane_Assist_Data3_FD1"]
+      self.legacy_lka_feedback = {
+        "availability": int(status["LaActAvail_D_Actl"]),
+        "denied": bool(status["LaActDeny_B_Actl"]),
+        "time_nanos": cp.ts_nanos["Lane_Assist_Data3_FD1"]["LaActAvail_D_Actl"],
+      }
+      ret.steerFaultTemporary |= status["LaActAvail_D_Actl"] not in (2, 3) or bool(status["LaActDeny_B_Actl"])
+
     return ret
 
   @staticmethod
   def get_can_parsers(CP):
+    extra = [("Lane_Assist_Data3_FD1", 33)] if CP.flags & FordFlags.LEGACY_LKA else []
     return {
       Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt],
-                        [("SteeringPinion_Data_Alt", 100), ("ParkAid_Data", 50), ("TransGearData", 10)]
-                        if CP.flags & FordFlags.ALT_STEER_ANGLE else [], CanBus(CP).main),
+                        ([("SteeringPinion_Data_Alt", 100), ("ParkAid_Data", 50), ("TransGearData", 10)]
+                        if CP.flags & FordFlags.ALT_STEER_ANGLE else []) + extra, CanBus(CP).main),
       Bus.cam: CANParser(DBC[CP.carFingerprint][Bus.pt], [], CanBus(CP).camera),
     }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "opendbc/safety/declarations.h"
+#include "opendbc/safety/modes/ford_legacy_lka.h"
 
 // Safety-relevant CAN messages for Ford vehicles.
 #define FORD_EngBrakeData          0x165U   // RX from PCM, for driver brake pedal and cruise state
@@ -164,6 +165,9 @@ static const AngleSteeringLimits FORD_STEERING_LIMITS = FORD_LIMITS(false);
 
 static void ford_rx_hook(const CANPacket_t *msg) {
   if (msg->bus == FORD_MAIN_BUS) {
+    if (ford_legacy_lka) {
+      ford_lka_rx(msg);
+    }
     // Update in motion state from standstill signal
     if (msg->addr == FORD_DesiredTorqBrk) {
       // Signal: VehStop_D_Stat
@@ -291,7 +295,9 @@ static bool ford_tx_hook(const CANPacket_t *msg) {
     // values such as the steering angle or lane curvature for debugging,
     // but the action (LkaActvStats_D2_Req) must be set to zero.
     unsigned int action = msg->data[0] >> 5;
-    if (action != 0U) {
+    if (ford_legacy_lka) {
+      tx = ford_lka_tx(msg);
+    } else if (action != 0U) {
       tx = false;
     }
   }
@@ -323,6 +329,13 @@ static bool ford_tx_hook(const CANPacket_t *msg) {
       ford_bp_path_angle_last = previous_bp_path_angle;
     }
 
+    if (ford_legacy_lka) {
+      // Only a strictly neutral LCA keepalive is authorized alongside LKA.
+      violation |= steer_control_enabled || (desired_curvature != 0) ||
+                   (raw_curvature_rate != FORD_INACTIVE_CURVATURE_RATE) ||
+                   (raw_path_angle != FORD_INACTIVE_PATH_ANGLE) ||
+                   (raw_path_offset != FORD_INACTIVE_PATH_OFFSET);
+    }
     if (violation) {
       tx = false;
     }
@@ -366,7 +379,18 @@ static bool ford_tx_hook(const CANPacket_t *msg) {
 }
 
 static safety_config ford_init(uint16_t param) {
-  alka_allowed = true;  // dp - ALKA enabled for Ford
+  ford_legacy_lka = GET_FLAG(param, 16U);
+  ford_lka_reset();
+  // Active test mode is debug-only and has exactly one supported flag pairing.
+  bool lka_pair_valid = false;
+#ifdef ALLOW_DEBUG
+  lka_pair_valid = param == 24U;
+#endif
+  if (ford_legacy_lka && !lka_pair_valid) {
+    alka_allowed = false;
+    return (safety_config){NULL, 0, NULL, 0, true};
+  }
+  alka_allowed = !ford_legacy_lka;  // ALKA cannot authorize legacy LKA
   ford_bluepilot = GET_FLAG(param, 4U);
   ford_stock_acc = GET_FLAG(param, 8U);
   ford_bp_path_angle_last = 0;
@@ -414,6 +438,22 @@ static safety_config ford_init(uint16_t param) {
     FORD_COMMON_TX_MSGS
     {FORD_LateralMotionControl, 0, 8, .check_relay = true},
   };
+
+  static RxCheck ford_lka_rx_checks[] = {
+    {.msg = {{FORD_BrakeSysFeatures, 0, 8, 50U, .max_counter = 15U}, { 0 }, { 0 }}},
+    {.msg = {{FORD_EngVehicleSpThrottle2, 0, 8, 50U, .ignore_checksum = true, .ignore_counter = true}, { 0 }, { 0 }}},
+    {.msg = {{FORD_Yaw_Data_FD1, 0, 8, 100U, .max_counter = 255U}, { 0 }, { 0 }}},
+    {.msg = {{FORD_EngBrakeData, 0, 8, 10U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{FORD_EngVehicleSpThrottle, 0, 8, 100U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{FORD_DesiredTorqBrk, 0, 8, 50U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{0x76, 0, 8, 50U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{0x82, 0, 8, 50U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{0x3A8, 0, 8, 50U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{0x3CC, 0, 8, 33U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+  };
+  if (ford_legacy_lka) {
+    return BUILD_SAFETY_CFG(ford_lka_rx_checks, FORD_STOCK_TX_MSGS);
+  }
 
   const uint16_t FORD_PARAM_CANFD = 2;
   const bool ford_canfd = GET_FLAG(param, FORD_PARAM_CANFD);
