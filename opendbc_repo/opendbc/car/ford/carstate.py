@@ -51,7 +51,11 @@ class CarState(CarStateBase):
     ret.parkingBrake = cp.vl["DesiredTorqBrk"]["PrkBrkStatus"] in (1, 2)
 
     # steering wheel
-    if self.CP.flags & FordFlags.ALT_STEER_ANGLE:
+    if self.CP.flags & FordFlags.FUSION_LKA_PORT:
+      wheel = can_parsers['legacy_wheel']
+      ret.steeringAngleDeg = wheel.vl['Steering_Wheel_Data_CG1']['SteWhlRelInit_An_Sns']
+      ret.vehicleSensorsInvalid = not wheel.can_valid
+    elif self.CP.flags & FordFlags.ALT_STEER_ANGLE:
       reference = cp.vl["ParkAid_Data"]
       relative_angle = cp.vl["SteeringPinion_Data_Alt"]["StePinRelInit_An_Sns"]
       reference_valid = (
@@ -162,5 +166,6 @@ class CarState(CarStateBase):
     }
     if CP.flags & FordFlags.LEGACY_LKA:
       # Decode the same SCCM signal independently checked by Panda.
-      parsers["legacy_wheel"] = CANParser("ford_fusion_2018_pt", [("Steering_Wheel_Data_CG1", 50)], CanBus(CP).main)
+      wheel_dbc = 'ford_fusion_legacy_lka' if CP.flags & FordFlags.FUSION_LKA_PORT else 'ford_fusion_2018_pt'
+      parsers["legacy_wheel"] = CANParser(wheel_dbc, [("Steering_Wheel_Data_CG1", 50)], CanBus(CP).main)
     return parsers

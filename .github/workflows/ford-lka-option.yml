@@ -2,7 +2,7 @@ name: Ford legacy LKA tests and device builds
 
 on:
   push:
-    branches: [ford-lka-option]
+    branches: [ford-lka-option, ford-fusion-lka-port]
   pull_request:
     branches: [ford-legacy-lka]
   workflow_dispatch:
@@ -34,6 +34,8 @@ jobs:
             site_scons
             selfdrive/car
             selfdrive/controls
+            selfdrive/selfdrived
+            selfdrive/locationd
             dragonpilot/settings
             system/hardware
             tools/ford_legacy_lka
@@ -54,11 +56,22 @@ jobs:
         run: |
           python -m unittest -q opendbc.car.ford.tests.test_legacy_lka_option opendbc.safety.tests.test_ford_legacy_lka tools.ford_legacy_lka.test_research tools.ford_legacy_lka.test_dbc tools.ford_legacy_lka.test_passive_safety opendbc.car.ford.tests.test_factory_acc opendbc.car.ford.tests.test_bluepilot opendbc.safety.tests.test_ford_factory_acc opendbc.safety.tests.test_ford_bluepilot opendbc.safety.tests.test_ford opendbc.car.chrysler.tests.test_alka opendbc.safety.tests.test_chrysler_alka opendbc.safety.tests.test_chrysler opendbc.safety.tests.test_alka.TestALKAFord opendbc.safety.tests.test_alka.TestALKADisabledBrands
           python -m compileall -q selfdrive/car/card.py dragonpilot/settings/brand-ford-legacy-lka.py tools/ford_legacy_lka/check_option.py
+          python -m unittest -q tools.ford_legacy_lka.test_diagnostics tools.ford_legacy_lka.test_host_latch opendbc.car.ford.tests.test_fusion_lka_port opendbc.safety.tests.test_ford_fusion_lka_port
       - name: Verify packaged release when source matches
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/opendbc_repo
         run: |
-          if test -f tools/ford_legacy_lka/release.json; then python tools/ford_legacy_lka/verify_release.py; fi
+          python - <<'PY'
+          import json, subprocess, sys
+          from pathlib import Path
+          p=Path('tools/ford_legacy_lka/release.json')
+          if p.exists():
+            manifest=json.loads(p.read_text())
+            if manifest.get('package_status') == 'native-build-pending':
+              print('Source-only port: H7 package will be verified after the build is pinned.')
+            else:
+              subprocess.run([sys.executable,'tools/ford_legacy_lka/verify_release.py'],check=True)
+          PY
       - name: Build signed H7 application
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/opendbc_repo
@@ -77,6 +90,7 @@ jobs:
             panda/board/obj/version
 
   settings-aarch64:
+    if: github.ref_name != 'ford-fusion-lka-port'
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
     steps:

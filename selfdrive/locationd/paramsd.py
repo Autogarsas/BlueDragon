@@ -5,6 +5,7 @@ import capnp
 
 import cereal.messaging as messaging
 from cereal import car, log
+from opendbc.car.ford.values import FordFlags
 from openpilot.common.params import Params
 from openpilot.common.realtime import config_realtime_process, DT_MDL
 from openpilot.selfdrive.locationd.models.car_kf import CarKalman, ObservationKind, States
@@ -232,6 +233,10 @@ def retrieve_initial_vehicle_params(params: Params, CP: car.CarParams, replay: b
         # Check if car model matches
         if last_CP.carFingerprint != CP.carFingerprint:
           raise Exception("Car model mismatch")
+        # The retrofit selector is shared with the earlier Edge-based path.
+        # A change of steering sensor reference must not reuse its angle offset.
+        if CP.brand == 'ford' and ((last_CP.flags ^ CP.flags) & FordFlags.FUSION_LKA_PORT):
+          raise Exception("Ford Fusion steering reference changed")
 
         # Check if starting values are sane
         min_sr, max_sr = 0.5 * CP.steerRatio, 2.0 * CP.steerRatio

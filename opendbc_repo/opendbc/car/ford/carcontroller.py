@@ -6,6 +6,7 @@ from opendbc.car.lateral import ISO_LATERAL_ACCEL, apply_std_steer_angle_limits
 from opendbc.car.ford import fordcan
 from opendbc.car.ford.bluepilot_lateral import BluePilotLateral
 from opendbc.car.ford.legacy_lka import LegacyLKALateral
+from opendbc.car.ford.fusion_lka_port import FusionLegacyLKAPort, create_command as create_fusion_lka_command
 from opendbc.car.ford.values import CarControllerParams, FordFlags, CAR
 from opendbc.car.interfaces import CarControllerBase, V_CRUISE_MAX
 
@@ -67,7 +68,8 @@ class CarController(CarControllerBase):
     self.CAN = fordcan.CanBus(CP)
 
     self.bp_lateral = BluePilotLateral(CP) if CP.flags & FordFlags.BLUEPILOT else None
-    self.legacy_lka = LegacyLKALateral(CP) if CP.flags & FordFlags.LEGACY_LKA else None
+    self.legacy_lka = (FusionLegacyLKAPort(CP) if CP.flags & FordFlags.FUSION_LKA_PORT else
+                       LegacyLKALateral(CP) if CP.flags & FordFlags.LEGACY_LKA else None)
     self.bp_model = None
     self.apply_curvature_last = 0
     self.anti_overshoot_curvature_last = 0
@@ -165,11 +167,15 @@ class CarController(CarControllerBase):
           can_sends.append(fordcan.create_lat_ctl_msg(self.packer, self.CAN, CC.latActive, 0., 0., -self.apply_curvature_last, 0.))
 
     # send lka msg at 33Hz
-    if (self.frame % CarControllerParams.LKA_STEP) == 0:
+    lka_step = 1 if self.CP.flags & FordFlags.FUSION_LKA_PORT else CarControllerParams.LKA_STEP
+    if (self.frame % lka_step) == 0:
       if self.legacy_lka is not None:
         command = self.legacy_lka.update(CC, CS, now_nanos)
         CS.legacy_lka_latched = self.legacy_lka.latched
-        can_sends.append(fordcan.create_legacy_lka_msg(self.CAN, command))
+        if self.CP.flags & FordFlags.FUSION_LKA_PORT:
+          can_sends.append(create_fusion_lka_command(self.legacy_lka.packer, self.CAN.main, command))
+        else:
+          can_sends.append(fordcan.create_legacy_lka_msg(self.CAN, command))
         self.apply_curvature_last = -command.curvature_raw * 0.000005
       else:
         can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN))

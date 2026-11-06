@@ -14,16 +14,23 @@ from opendbc.car.ford.values import CAR, DBC, FordFlags
 from tools.ford_legacy_lka.protocol import decode_lka
 
 
-def params(candidate=CAR.FORD_EDGE_MK2, legacy=False, bluepilot=True, factory=True, alpha=False):
+def params(candidate=CAR.FORD_EDGE_MK2, legacy=False, bluepilot=True, factory=True, alpha=False, reference_port=False):
   flags = (structs.DPFlags.FordLegacyLKA if legacy else 0)
   flags |= structs.DPFlags.FordBluePilot if bluepilot else 0
   flags |= structs.DPFlags.FordStockLon if factory else 0
-  return CarInterface.get_params(candidate, gen_empty_fingerprint(), [], alpha, False, flags, True)
+  cp = CarInterface.get_params(candidate, gen_empty_fingerprint(), [], alpha, False, flags, True)
+  # Retain explicit fixtures for the archived parameter-24 controller. The real
+  # startup path selects the reference port; new tests exercise that path too.
+  if legacy and not reference_port and not cp.dashcamOnly:
+    cp.flags &= ~int(FordFlags.FUSION_LKA_PORT)
+    cp.safetyConfigs[-1].safetyParam = 24
+  return cp
 
 
 def state(cp, now=1_000_000_000):
   cs = car_state(cp)
   cs.out.canValid = True
+  cs.legacy_lka_panda_valid = True
   cs.legacy_lka_feedback = dict(availability=3, denied=False, time_nanos=now, wheel_time_nanos=now, wheel_angle_deg=0.0)
   return cs
 
@@ -32,7 +39,7 @@ class TestLegacyLKAOption(unittest.TestCase):
   def test_mode_pair_and_factory_ownership(self):
     for bluepilot in (False, True):
       for factory in (False, True):
-        cp = params(legacy=True, bluepilot=bluepilot, factory=factory, alpha=True)
+        cp = params(legacy=True, bluepilot=bluepilot, factory=factory, alpha=True, reference_port=True)
         self.assertFalse(cp.dashcamOnly)
         self.assertFalse(cp.flags & FordFlags.BLUEPILOT)
         self.assertTrue(cp.flags & FordFlags.LEGACY_LKA)
@@ -42,7 +49,8 @@ class TestLegacyLKAOption(unittest.TestCase):
         self.assertFalse(cp.autoResumeSng)
         self.assertFalse(cp.steerAtStandstill)
         self.assertEqual(15, cp.minSteerSpeed)
-        self.assertEqual([(structs.CarParams.SafetyModel.ford, 24)],
+        self.assertTrue(cp.flags & FordFlags.FUSION_LKA_PORT)
+        self.assertEqual([(structs.CarParams.SafetyModel.ford, 40)],
                          [(s.safetyModel, s.safetyParam) for s in cp.safetyConfigs])
 
   def test_unsupported_profiles_remain_passive(self):
@@ -156,7 +164,7 @@ class TestLegacyLKAOption(unittest.TestCase):
     self.assertAlmostEqual(3.4, cs.legacy_lka_feedback['wheel_angle_deg'])
     self.assertEqual(1_000_000_000, cs.legacy_lka_feedback['wheel_time_nanos'])
     cs.legacy_lka_latched = True
-    self.assertTrue(cs.update(parsers).steerFaultTemporary)
+    self.assertFalse(cs.update(parsers).steerFaultTemporary)
     cs.legacy_lka_latched = False
     self.assertFalse(cs.update(parsers).steerFaultTemporary)
 

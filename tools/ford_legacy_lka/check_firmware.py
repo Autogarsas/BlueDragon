@@ -9,6 +9,8 @@ ROOT=Path(__file__).resolve().parents[2]
 
 def main():
   release=json.loads((ROOT/'tools/ford_legacy_lka/release.json').read_text())
+  if release.get('package_status') == 'native-build-pending':
+    raise SystemExit('Fusion port H7 pairing is not packaged yet. Do not install or test this source-only revision.')
   firmware=json.loads((ROOT/release['h7_manifest']).read_text())
   version,prefix=firmware['build_version'],firmware['firmware_signature_prefix']
   commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()

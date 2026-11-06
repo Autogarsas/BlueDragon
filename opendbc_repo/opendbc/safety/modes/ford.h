@@ -379,12 +379,13 @@ static bool ford_tx_hook(const CANPacket_t *msg) {
 }
 
 static safety_config ford_init(uint16_t param) {
-  ford_legacy_lka = GET_FLAG(param, 16U);
+  ford_fusion_lka_port = GET_FLAG(param, 32U);
+  ford_legacy_lka = GET_FLAG(param, 16U) || ford_fusion_lka_port;
   ford_lka_reset();
   // Active test mode is debug-only and has exactly one supported flag pairing.
   bool lka_pair_valid = false;
 #ifdef ALLOW_DEBUG
-  lka_pair_valid = param == 24U;
+  lka_pair_valid = ford_fusion_lka_port ? (param == 40U) : (param == 24U);
 #endif
   if (ford_legacy_lka && !lka_pair_valid) {
     alka_allowed = false;
@@ -451,6 +452,20 @@ static safety_config ford_init(uint16_t param) {
     {.msg = {{0x3A8, 0, 8, 50U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},
     {.msg = {{0x3CC, 0, 8, 33U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},
   };
+  static RxCheck ford_fusion_lka_rx_checks[] = {
+    {.msg = {{FORD_BrakeSysFeatures, 0, 8, 50U, .max_counter = 15U}, { 0 }, { 0 }}},
+    {.msg = {{FORD_EngVehicleSpThrottle2, 0, 8, 50U, .ignore_checksum = true, .ignore_counter = true}, { 0 }, { 0 }}},
+    {.msg = {{FORD_Yaw_Data_FD1, 0, 8, 100U, .max_counter = 255U}, { 0 }, { 0 }}},
+    {.msg = {{FORD_EngBrakeData, 0, 8, 10U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{FORD_EngVehicleSpThrottle, 0, 8, 100U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{FORD_DesiredTorqBrk, 0, 8, 50U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{0x76, 0, 8, 50U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{0x82, 0, 8, 50U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{0x3CC, 0, 8, 33U, .ignore_checksum = true, .ignore_counter = true, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+  };
+  if (ford_fusion_lka_port) {
+    return BUILD_SAFETY_CFG(ford_fusion_lka_rx_checks, FORD_STOCK_TX_MSGS);
+  }
   if (ford_legacy_lka) {
     return BUILD_SAFETY_CFG(ford_lka_rx_checks, FORD_STOCK_TX_MSGS);
   }

@@ -1,0 +1,47 @@
+{
+  "openpilot_commit": "5b5f7516d813ec08c887183f9707ecd180306292",
+  "opendbc_commit": "d3a6e5fbeac38ff0f9c418f202ee8f004de28d1d",
+  "panda_commit": "38b393f73cc4251158336309e30c4ef72a751307",
+  "files": {
+    "carcontroller.py": {
+      "git_blob": "dee902c5863a7d4a246243cdc21284c61695a195",
+      "sha256": "83a8ecc257bb825725febe05131403026e55411e9522e3842e76389855a63ed2"
+    },
+    "fordcan.py": {
+      "git_blob": "ab4b2ae795ad338f798e501726901419dd3fc968",
+      "sha256": "e5a7f5c90daceb1ba864a95bd78e854cf8be904a2725229e2bcd88b5b3a076d8"
+    },
+    "carstate.py": {
+      "git_blob": "6a5438e9d1ec96ceac3681c8e95163c8f99f5654",
+      "sha256": "d75f70a5e8c63265ff34e886f1b73a4c059b0fec62ca9277962363dc42b072d0"
+    },
+    "interface.py": {
+      "git_blob": "d13a9ae3cc38a9c19010f070733ac9370fd92a1e",
+      "sha256": "f8aef1497384e1d2a3f4626c377da9c6398e3f60959d4466884dee5889094c07"
+    },
+    "values.py": {
+      "git_blob": "ac5f3666c873b8a912ed8756861b68d15e5e74d3",
+      "sha256": "29600431507273a63597d1d219c9ce114ac4eb989354df5796aab855874313fb"
+    },
+    "latcontrol_pid.py": {
+      "git_blob": "5662942b8f0a4fc981d246242b264534e3768db0",
+      "sha256": "3759c8898300354718dfb7c84aa6f6c091b3f882fbbfe7b04520405a8ef393d7"
+    },
+    "pid.py": {
+      "git_blob": "916b95c9ea0c4b9db315d9a4f16cec940efe2b73",
+      "sha256": "4ce1cd8aa90112b922a3a5385ea935984ec8f9e6c8c4b06634cc86ba02c9114a"
+    },
+    "ford_lincoln_base_pt.dbc": {
+      "git_blob": "57983d26b010b7e4aea2eebf6251b87537e66055",
+      "sha256": "943219edd4308ce5dc9517117dfa2338a122089d759070686ac31495ec117aed"
+    },
+    "unsafe_panda_reference.txt": {
+      "git_blob": "ffa7eba2437decc8c6bee279dc4091960bb23300",
+      "sha256": "e03c75ac03b973380ba60124375944f0947407b5821eb2445e4dfedcc8ab248f"
+    },
+    "LICENSE": {
+      "git_blob": "7dafa9443b1545980b261dddd4184a8daec16758",
+      "sha256": "716ce815a0467219c59ec2433e6bce7f32efc45240725c6d3141a52b111d2558"
+    }
+  }
+}

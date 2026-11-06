@@ -5,6 +5,7 @@
 // 0.04297-degree/count equivalent is used ONLY for the independent wheel-error
 // check. The absolute 128-count cap bounds both candidate interpretations.
 static bool ford_legacy_lka = false;
+static bool ford_fusion_lka_port = false;
 static bool ford_lka_active_last = false;
 static int ford_lka_reference_last = 0;
 static int ford_lka_curvature_last = 0;
@@ -61,8 +62,11 @@ static bool ford_lka_tx(const CANPacket_t *msg) {
   const int curvature = ((msg->data[1] << 4) | (msg->data[2] >> 4)) - 2048;
   const bool active = action != 0U;
   const uint32_t now = microsecond_timer_get();
-  bool violation = (msg->data[0] & 31U) != 3U;  // no LDW request, ordinary intensity field
-  violation |= (action != 0U) && (action != 2U) && (action != 4U);
+  // The reference DBC/encoder emits action 2 and lower nibble 0xe. Keep that
+  // exact active encoding in the distinct port mode; neutral remains 0x03.
+  const unsigned int lower = (ford_fusion_lka_port && active) ? 14U : 3U;
+  bool violation = (msg->data[0] & 31U) != lower;
+  violation |= (action != 0U) && (action != 2U) && (ford_fusion_lka_port || (action != 4U));
   violation |= (msg->data[4] != 0U) || (msg->data[5] != 0U) || (msg->data[6] != 0U) || (msg->data[7] != 0U);
   violation |= safety_max_limit_check(reference, 128, -128);
   violation |= safety_max_limit_check(curvature, 300, -300);
@@ -71,33 +75,43 @@ static bool ford_lka_tx(const CANPacket_t *msg) {
     violation |= (reference != 0) || (curvature != 0);
   } else {
     const float speed = vehicle_speed.values[0] / VEHICLE_SPEED_FACTOR;
-    const int wheel_reference = ROUND(ford_lka_wheel_decideg / 0.4297F);
+    // Preserve the upstream numerical reference basis: PID*87 is encoded with
+    // a 0.05/count DBC scale, using the same SCCM angle as the PID measurement.
+    // No camera absolute-angle offset is mixed into this reference.
+    const float reference_scale = ford_fusion_lka_port ? 0.5F : 0.4297F;
+    const int wheel_reference = ROUND(ford_lka_wheel_decideg / reference_scale);
     const int previous_reference = ford_lka_active_last ? ford_lka_reference_last : wheel_reference;
     const int previous_curvature = ford_lka_active_last ? ford_lka_curvature_last : angle_meas.values[0] * 4;
-    const int reference_decideg = ROUND(reference * 0.4297F);
+    const int reference_decideg = ROUND(reference * reference_scale);
     const int error = reference_decideg - ford_lka_wheel_decideg;
     violation |= !controls_allowed || !lat_control_allowed() || brake_pressed || gas_pressed;
     violation |= !ford_lka_available || !ford_lka_eps_ok || !ford_lka_inputs_fresh(now);
     violation |= (speed < 15.0F) || (speed > 30.0F);
     violation |= safety_max_limit_check(ford_lka_wheel_decideg, 55, -55);
-    violation |= safety_max_limit_check(ford_lka_wheel_decideg - ford_lka_camera_decideg, 5, -5);
+    if (!ford_fusion_lka_port) {
+      violation |= safety_max_limit_check(ford_lka_wheel_decideg - ford_lka_camera_decideg, 5, -5);
+    }
     violation |= safety_max_limit_check(ford_lka_torque_raw, 16, -16);
     violation |= safety_max_limit_check(error, 20, -20);
     // Allow a small direction deadband. A release/re-engage cannot seed a fake
     // reference: the first active packet is rate-limited from the measured wheel.
-    violation |= ((action == 2U) && (error > 3)) || ((action == 4U) && (error < -3));
+    if (!ford_fusion_lka_port) {
+      violation |= ((action == 2U) && (error > 3)) || ((action == 4U) && (error < -3));
+    }
     // Initial envelopes account for the host's sensor transport delay and yaw
     // quantization. They remain anchored to fresh measurements, never a host
     // reset value. Subsequent accepted active packets have a strict 2-count slew.
-    const int reference_delta = ford_lka_active_last ? 2 : 12;
-    const int curvature_delta = ford_lka_active_last ? 2 : 8;
+    const int reference_delta = ford_lka_active_last ? (ford_fusion_lka_port ? 1 : 2) : 12;
+    const int curvature_delta = ford_lka_active_last ? (ford_fusion_lka_port ? 1 : 2) : 8;
     violation |= safety_max_limit_check(reference, previous_reference + reference_delta, previous_reference - reference_delta);
     violation |= safety_max_limit_check(curvature, previous_curvature + curvature_delta, previous_curvature - curvature_delta);
     // 0x3CA curvature has four times as many counts/m^-1 as angle_meas here.
     violation |= safety_max_limit_check(curvature, (angle_meas.max * 4) + 200, (angle_meas.min * 4) - 200);
     if (ford_lka_active_last) {
       const uint32_t elapsed = safety_get_ts_elapsed(now, ford_lka_last_tx_ts);
-      violation |= (elapsed < 20000U) || (elapsed > 100000U);
+      const uint32_t minimum = ford_fusion_lka_port ? 5000U : 20000U;
+      const uint32_t maximum = ford_fusion_lka_port ? 30000U : 100000U;
+      violation |= (elapsed < minimum) || (elapsed > maximum);
     }
   }
   // Never let a rejected packet alter the next packet's rate envelope.

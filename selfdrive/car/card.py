@@ -291,6 +291,14 @@ class Car:
       self.params.put_bool("ControlsReady", True)
 
     if self.sm.all_alive(['carControl']):
+      if self.CP.brand == 'ford' and self.CP.flags & FordFlags.FUSION_LKA_PORT:
+        # A native rejection ends the attempt on the next Panda status update;
+        # continue neutral heartbeats instead of starving the EPS for a second.
+        self.CI.CS.legacy_lka_tx_blocked = sum(p.safetyTxBlocked for p in self.sm['pandaStates'])
+        self.CI.CS.legacy_lka_panda_valid = (self.sm.all_checks(['pandaStates']) and
+          bool(len(self.sm['pandaStates'])) and all(
+            p.safetyModel == structs.CarParams.SafetyModel.ford and p.safetyParam == 40 and not p.safetyRxChecksInvalid
+            for p in self.sm['pandaStates']))
       # send car controls over can
       now_nanos = self.can_log_mono_time if REPLAY else int(time.monotonic() * 1e9)
       if self.ford_bp is not None:

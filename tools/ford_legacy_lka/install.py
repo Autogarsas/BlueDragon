@@ -12,7 +12,7 @@ import sys
 import time
 
 ROOT = Path('/data/openpilot')
-BRANCH = 'ford-lka-option'
+BRANCH = 'ford-fusion-lka-port'
 
 
 def run(*args, capture=False):
@@ -84,7 +84,9 @@ def main():
   run(sys.executable, '-m', 'unittest',
       'tools.ford_legacy_lka.test_research',
       'tools.ford_legacy_lka.test_diagnostics',
-      'tools.ford_legacy_lka.test_host_latch')
+      'tools.ford_legacy_lka.test_host_latch',
+      'opendbc.car.ford.tests.test_fusion_lka_port',
+      'opendbc.safety.tests.test_ford_fusion_lka_port')
   # A fresh process must load the newly installed settings library, even if
   # earlier status imports cached the previous native module in this process.
   run(sys.executable, '-c',

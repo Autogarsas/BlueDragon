@@ -22,6 +22,7 @@ class Flags(IntFlag):
   CANFD = 1
   ALT_STEER_ANGLE = 2
   LEGACY_LKA = 16
+  FUSION_LKA_PORT = 32
 
 
 def controller_class():

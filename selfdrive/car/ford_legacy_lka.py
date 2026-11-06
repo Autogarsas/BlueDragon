@@ -23,6 +23,8 @@ def stop_title(reason: str) -> str:
     "outside_reference_authority": "angle limit",
     "output_tracking_limit": "tracking limit",
     "command_interval": "timing check",
+    "panda_rejected": "Panda rejection",
+    "panda_pair_unavailable": "Panda status",
     "lateral_inactive": "lateral stopped",
   }.get(reason)
   return f"LKA stopped: {cause}" if cause else "LKA stopped"

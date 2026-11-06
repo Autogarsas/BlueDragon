@@ -21,11 +21,13 @@ def main():
     legacy = cp.brand == 'ford' and bool(cp.flags & FordFlags.LEGACY_LKA)
     expected = [(str(s.safetyModel), s.safetyParam) for s in cp.safetyConfigs]
     print('Profile:', cp.brand, cp.carFingerprint)
-    print('Startup steering mode:', 'Legacy LKA test' if legacy else 'LCA')
+    port = legacy and bool(cp.flags & FordFlags.FUSION_LKA_PORT)
+    print('Startup steering mode:', 'Fusion reference LKA port (100 Hz)' if port else 'Legacy LKA test' if legacy else 'LCA')
     print('Dashcam only:', cp.dashcamOnly, 'Passive:', cp.passive)
     print('Openpilot speed control:', cp.openpilotLongitudinalControl)
     print('Configured safety:', expected)
     if legacy:print('Test limits: 54-108 km/h; reference +/-128 raw; curvature +/-0.0015 m^-1')
+    if port:print('Reference: JDGarlock 5b5f7516; pinned DBC 0.05 scale; canonical Panda safety 40')
     if cp.brand == 'ford' and selected != legacy:print('Restart while parked to apply the saved selection')
   sm = messaging.SubMaster(['carState', 'carControl', 'pandaStates', 'carStateExt'])
   end = time.monotonic() + 3

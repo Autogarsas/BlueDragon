@@ -108,7 +108,7 @@ class CarInterface(CarInterfaceBase):
     ret.centerToFront = ret.wheelbase * 0.44
 
     if legacy_lka:
-      ret.flags |= int(FordFlags.LEGACY_LKA)
+      ret.flags |= int(FordFlags.LEGACY_LKA | FordFlags.FUSION_LKA_PORT)
       ret.steerAtStandstill = False
       ret.minSteerSpeed = 15.0
       if candidate != CAR.FORD_EDGE_MK2 or ret.flags & FordFlags.CANFD:
@@ -118,5 +118,15 @@ class CarInterface(CarInterfaceBase):
       else:
         # A distinct, canonical Panda configuration; never inherit BluePilot,
         # CAN FD, OP longitudinal or ALKA authority in this test mode.
-        ret.safetyConfigs[-1].safetyParam = int(FordSafetyFlags.STOCK_ACC | FordSafetyFlags.LEGACY_LKA)
+        ret.safetyConfigs[-1].safetyParam = int(FordSafetyFlags.STOCK_ACC | FordSafetyFlags.FUSION_LKA_PORT)
+        # Pinned Fusion/Mondeo geometry and angle-PID tuning from 5b5f7516.
+        # The existing Edge selector remains the retrofit fingerprint alias.
+        ret.mass = 3045. * CV.LB_TO_KG
+        ret.wheelbase, ret.steerRatio = 2.85, 14.8
+        ret.centerToFront = ret.wheelbase * .44
+        ret.tireStiffnessFactor = .5328
+        ret.steerActuatorDelay, ret.steerLimitTimer = .1, .8
+        tuning = ret.lateralTuning.init('pid')
+        tuning.kpBP, tuning.kiBP = [0.], [0.]
+        tuning.kpV, tuning.kiV, tuning.kf = [.01], [.005], 1. / 87.
     return ret

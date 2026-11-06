@@ -49,6 +49,7 @@ class FordSafetyFlags(IntFlag):
   BLUEPILOT = 4
   STOCK_ACC = 8
   LEGACY_LKA = 16
+  FUSION_LKA_PORT = 32
 
 
 class FordFlags(IntFlag):
@@ -58,6 +59,7 @@ class FordFlags(IntFlag):
   BLUEPILOT = 4  # dynamic: selected at startup, paired with Panda safety flag
   STOCK_ACC = 8  # dynamic: retain factory gas/brake control and manual resume
   LEGACY_LKA = 16  # dynamic: limited-authority legacy LKA test controller
+  FUSION_LKA_PORT = 32  # pinned Fusion PID/DBC port; canonical Panda parameter 40
 
 
 class RADAR:

@@ -12,6 +12,8 @@ from tools.chrysler_alka.verify_release import verify as verify_h7
 
 def main():
   manifest=json.loads((ROOT/'tools/ford_legacy_lka/release.json').read_text())
+  if manifest.get('package_status') == 'native-build-pending':
+    raise RuntimeError('Fusion reference port is source-only: paired H7 build is not packaged. Do not install.')
   verify_h7(ROOT,json.loads((ROOT/manifest['h7_manifest']).read_text()))
   binary=(ROOT/'common/params_pyx.so').read_bytes()
   if hashlib.sha256(binary).hexdigest()!=manifest['params_sha256']:
@@ -25,7 +27,7 @@ def main():
   h7=json.loads((ROOT/manifest['h7_manifest']).read_text())
   print('Verified legacy LKA H7:',h7['build_version'],'signature prefix:',h7['firmware_signature_prefix'])
   print('Verified ARM settings library:',manifest['registered_keys'],'keys')
-  print('Paired mode: Ford safety 24; factory ACC; LCA remains the default when the LKA setting is off.')
+  print('Paired mode: Ford safety',manifest['safety_param'],'; factory ACC; LCA remains the default when the LKA setting is off.')
   print('Package verification does not establish vehicle response, reference calibration or a timer lockout.')
 
 
