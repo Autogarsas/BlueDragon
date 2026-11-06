@@ -24,6 +24,7 @@ from openpilot.selfdrive.selfdrived.alertmanager import AlertManager, set_offroa
 from openpilot.system.version import get_build_metadata
 from openpilot.system.hardware import HARDWARE
 from opendbc.safety import ALTERNATIVE_EXPERIENCE
+from opendbc.car.ford.values import FordFlags
 
 REPLAY = "REPLAY" in os.environ
 SIMULATION = "SIMULATION" in os.environ or os.getenv("LITE") is not None
@@ -60,6 +61,7 @@ class SelfdriveD:
       self.CP = CP
 
     self.car_events = CarSpecificEvents(self.CP)
+    self.legacy_lka = self.CP.brand == 'ford' and bool(self.CP.flags & FordFlags.LEGACY_LKA)
 
     # dp - ALKA: check if ALKA is enabled
     self.alka = bool(self.CP.alternativeExperience & ALTERNATIVE_EXPERIENCE.ALKA)
@@ -81,6 +83,8 @@ class SelfdriveD:
     self.car_state_sock = messaging.sub_sock('carState', timeout=20)
 
     ignore = self.sensor_packets + self.gps_packets + ['alertDebug', 'lateralManeuverPlan'] + ['modelExt']
+    if not self.legacy_lka:
+      ignore += ['carStateExt']
     if SIMULATION:
       ignore += ['driverMonitoringState', 'driverCameraState', 'managerState']
     if REPLAY:
@@ -90,7 +94,7 @@ class SelfdriveD:
                                    'carOutput', 'driverMonitoringState', 'longitudinalPlan', 'livePose', 'liveDelay',
                                    'managerState', 'liveParameters', 'radarState', 'liveTorqueParameters',
                                    'controlsState', 'carControl', 'driverAssistance', 'alertDebug', 'userBookmark', 'audioFeedback', 'modelExt',
-                                   'lateralManeuverPlan'] + \
+                                   'lateralManeuverPlan', 'carStateExt'] + \
                                    self.camera_packets + self.sensor_packets + self.gps_packets,
                                   ignore_alive=ignore, ignore_avg_freq=ignore,
                                   ignore_valid=ignore, frequency=int(1/DT_CTRL))
@@ -231,6 +235,10 @@ class SelfdriveD:
         (CS.brakePressed and (not self.CS_prev.brakePressed or not CS.standstill)) or \
         (CS.regenBraking and (not self.CS_prev.regenBraking or not CS.standstill)):
         self.events.add(EventName.pedalPressed)
+
+    # Host latch and physical EPS fault events are independent.
+    if self.legacy_lka and self.sm.all_checks(['carStateExt']) and self.sm['carStateExt'].legacyLkaLatched:
+      self.events.add(EventName.fordLegacyLkaLatched)
 
     # Create events for temperature, disk space, and memory
     if self.sm['deviceState'].thermalStatus >= ThermalStatus.overheated:

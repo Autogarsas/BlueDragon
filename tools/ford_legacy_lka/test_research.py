@@ -129,7 +129,7 @@ class TestFordLKAEvidence(unittest.TestCase):
 
   def test_nonfinite_values_are_recorded_as_json_null(self):
     s = Session("mkz_2016", "baseline")
-    add = event("carControl", latActive=True, actuators=NS(curvature=float("nan")))
+    add = event("carControl", enabled=True, latActive=True, actuators=NS(curvature=float("nan")))
     capture.add_event(s, add)
     self.assertIsNone(s.states[0]["desired_curvature"])
     json.dumps(s.report(), allow_nan=False)
@@ -202,7 +202,8 @@ class TestFordLKAEvidence(unittest.TestCase):
           patch.object(capture.time, "monotonic", side_effect=lambda: next(ticks)),
           patch.object(capture.time, "sleep")):
       capture.listen(s, 0.01)
-    self.assertEqual(["can", "sendcan", "carState", "carControl", "pandaStates"], created)
+    self.assertEqual(["can", "sendcan", "carState", "carControl", "pandaStates", "logMessage",
+                      "selfdriveState", "onroadEvents", "carStateExt"], created)
     self.assertEqual(["can", "sendcan"], [r["stream"] for r in s.frames])
 
   def test_real_capnp_receive_and_panda_state_events(self):
@@ -229,6 +230,28 @@ class TestFordLKAEvidence(unittest.TestCase):
     self.assertTrue(s.states[-1]["pandas"][0]["ignition"])
     json.dumps(s.report(), allow_nan=False)
 
+  def test_pinion_frames_and_full_minute_of_host_states_are_retained(self):
+    s = Session("fusion_2019", "before")
+    for addr in (0x7E, 0x85):
+      s.add_frame("can", 0, addr, bytes(range(8)), 1)
+    self.assertEqual(2, len(s.frames))
+    for i in range(16000):
+      s.add_state({"kind": "carState", "mono_ns": i})
+    self.assertEqual(16000, len(s.states))
+    self.assertFalse(s.states_truncated)
+    for i in range(5000):
+      s.add_state({"kind": "carControl", "mono_ns": i})
+    self.assertTrue(s.report()["states_truncated"])
+
+  def test_only_legacy_command_diagnostics_are_kept_from_logs(self):
+    s = Session("fusion_2019", "before")
+    for payload in ('invalid json', json.dumps({"msg": "unrelated"}),
+                    json.dumps({"msg": {"event": "bluedragon_ford_legacy_lka", "reason": "rack_unavailable_or_denied"}})):
+      capture.add_event(s, NS(which=lambda: "logMessage", logMonoTime=1000, valid=True, logMessage=payload))
+    self.assertEqual(1, len(s.states))
+    self.assertEqual("legacyLkaCommand", s.states[0]["kind"])
+
 
 if __name__ == "__main__":
   unittest.main()
+

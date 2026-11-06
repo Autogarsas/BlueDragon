@@ -17,6 +17,9 @@ struct ControlsStateExt @0x81c2f05a394cf4af {
 struct CarStateExt @0xaedffd8f31e7b55d {
   # dp - ALKA: lkasOn state from carstate (mirrors panda's lkas_on)
   lkasOn @0 :Bool;
+  # Host-side legacy-LKA stop latch, independent of physical EPS fault status.
+  legacyLkaLatched @1 :Bool;
+  legacyLkaLatchReason @2 :Text;
 }
 
 struct ModelExt @0xf35cc4560bbf6ec2 {

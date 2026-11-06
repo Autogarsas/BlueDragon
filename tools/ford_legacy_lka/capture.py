@@ -55,12 +55,42 @@ def add_event(session: Session, event):
     session.add_state({"kind": kind, "mono_ns": int(event.logMonoTime), "valid": bool(event.valid),
                        "speed_mps": finite(c.vEgo), "steering_angle_deg": finite(c.steeringAngleDeg),
                        "driver_torque": finite(c.steeringTorque), "driver_steering": c.steeringPressed,
+                       "gas_pressed": c.gasPressed, "brake_pressed": c.brakePressed,
+                       "cruise_enabled": c.cruiseState.enabled, "cruise_available": c.cruiseState.available,
+                       "vehicle_sensors_invalid": c.vehicleSensorsInvalid,
+                       "button_events": [{"type": str(b.type), "pressed": b.pressed} for b in c.buttonEvents],
                        "can_valid": c.canValid, "temporary_fault": c.steerFaultTemporary,
                        "permanent_fault": c.steerFaultPermanent})
+  elif kind == "carStateExt":
+    s = event.carStateExt
+    session.add_state({"kind": kind, "mono_ns": int(event.logMonoTime), "valid": bool(event.valid),
+                       "host_lka_latched": s.legacyLkaLatched, "host_lka_latch_reason": s.legacyLkaLatchReason})
+  elif kind == "selfdriveState":
+    s = event.selfdriveState
+    session.add_state({"kind": kind, "mono_ns": int(event.logMonoTime), "valid": bool(event.valid),
+                       "state": str(s.state), "enabled": s.enabled, "active": s.active,
+                       "engageable": s.engageable, "alert_type": s.alertType,
+                       "alert_text_1": s.alertText1, "alert_text_2": s.alertText2})
+  elif kind == "onroadEvents":
+    types = ("enable", "noEntry", "warning", "userDisable", "softDisable", "immediateDisable",
+             "preEnable", "permanent", "overrideLateral", "overrideLongitudinal")
+    session.add_state({"kind": kind, "mono_ns": int(event.logMonoTime), "valid": bool(event.valid),
+                       "events": [{"name": str(e.name), "types": [t for t in types if getattr(e, t)]}
+                                  for e in event.onroadEvents]})
   elif kind == "carControl":
     c = event.carControl
     session.add_state({"kind": kind, "mono_ns": int(event.logMonoTime), "valid": bool(event.valid),
-                       "lat_active": c.latActive, "desired_curvature": finite(c.actuators.curvature)})
+                       "enabled": c.enabled, "lat_active": c.latActive,
+                       "desired_curvature": finite(c.actuators.curvature)})
+  elif kind == "logMessage":
+    try:
+      record = json.loads(event.logMessage)
+      data = record.get("msg", {})
+      if isinstance(data, dict) and data.get("event") == "bluedragon_ford_legacy_lka":
+        session.add_state({"kind": "legacyLkaCommand", "mono_ns": int(event.logMonoTime),
+                           "valid": bool(event.valid), "command": data})
+    except (ValueError, TypeError, AttributeError):
+      pass
   elif kind == "pandaStates":
     session.add_state({"kind": kind, "mono_ns": int(event.logMonoTime), "valid": bool(event.valid),
                        "pandas": [{"ignition": p.ignitionLine or p.ignitionCan,
@@ -90,7 +120,8 @@ def read_logs(session: Session, paths: list[str]):
 
 def listen(session: Session, seconds: float):
   from cereal import messaging
-  streams = ("can", "sendcan", "carState", "carControl", "pandaStates")
+  streams = ("can", "sendcan", "carState", "carControl", "pandaStates", "logMessage",
+             "selfdriveState", "onroadEvents", "carStateExt")
   sockets = {name: messaging.sub_sock(name, timeout=0) for name in streams}
   end = time.monotonic() + seconds
   try:
@@ -119,16 +150,21 @@ def main(argv=None):
   parser.add_argument("--vehicle", choices=VEHICLES, required=True)
   parser.add_argument("--label", choices=("baseline", "before", "after"), default="baseline")
   parser.add_argument("--seconds", type=float, default=20)
+  parser.add_argument("--max-frames", type=int, default=200000,
+                      help="Retained frame limit (1-200000); truncation is explicit")
   parser.add_argument("--log", nargs="+", help="Local recorded rlog/qlog paths instead of live listening")
   parser.add_argument("--output", type=Path, required=True)
   parser.add_argument("--root", type=Path, default=Path("/data/openpilot"))
   args = parser.parse_args(argv)
   if not math.isfinite(args.seconds) or not 1 <= args.seconds <= 300:
     parser.error("--seconds must be finite and between 1 and 300")
-  session = Session(args.vehicle, args.label)
+  if not 1 <= args.max_frames <= 200000:
+    parser.error("--max-frames must be between 1 and 200000")
+  session = Session(args.vehicle, args.label, max_frames=args.max_frames)
   info = metadata(args.root)
   info["source"] = "recorded_logs" if args.log else "live_subscribers"
   info["requested_seconds"] = None if args.log else args.seconds
+  info["max_frames"] = args.max_frames
   # Reserve the output first: never listen and then overwrite an existing report.
   with args.output.open("x") as out:
     try:
@@ -147,6 +183,7 @@ def main(argv=None):
   print(json.dumps({"output": str(args.output), "vehicle_label": args.vehicle,
                     "frames": len(session.frames), "states": len(session.states),
                     "truncated": session.truncated, "errors": session.errors,
+                    "states_truncated": session.states_truncated,
                     "installed_branch": info.get("git_branch"),
                     "loaded_profile": info.get("car_params", {}).get("profile"),
                     "cached_identification": info.get("car_params", {}).get("cached"),
@@ -154,9 +191,11 @@ def main(argv=None):
                                                    if f["ecu"] in ("eps", "fwdCamera")],
                     "frame_counts": report["counts"],
                     "status_observations": report["status_observations"],
+                    "host_latch_observations": report["host_latch_observations"],
                     "layout_confirmed": False, "eps_acceptance_proven": False}, indent=2))
   return 1 if session.errors or not session.frames else 0
 
 
 if __name__ == "__main__":
   raise SystemExit(main())
+

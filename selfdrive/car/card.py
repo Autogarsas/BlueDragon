@@ -15,6 +15,7 @@ from opendbc.car import DT_CTRL, structs
 from opendbc.car.can_definitions import CanData, CanRecvCallable, CanSendCallable
 from opendbc.car.carlog import carlog
 from opendbc.car.fw_versions import ObdCallback
+from opendbc.car.ford.values import FordFlags
 from opendbc.car.car_helpers import get_car, interfaces
 from opendbc.car.interfaces import CarInterfaceBase, RadarInterfaceBase
 if "TICI_DOS" in os.environ:
@@ -110,6 +111,9 @@ class Car:
       if self.params.get_bool("dp_ford_stock_lon"):
         dp_params |= structs.DPFlags.FordStockLon
 
+      if self.params.get_bool("dp_ford_legacy_lka"):
+        dp_params |= structs.DPFlags.FordLegacyLKA
+
       if self.params.get_bool("dp_lat_alka"):
         dp_params |= structs.DPFlags.LatALKA
 
@@ -152,7 +156,7 @@ class Car:
 
     self.CP.alternativeExperience = 0
     # dp - ALKA: set alternative experience flag if ALKA is enabled
-    if dp_params & structs.DPFlags.LatALKA:
+    if dp_params & structs.DPFlags.LatALKA and not (self.CP.brand == "ford" and self.CP.flags & FordFlags.LEGACY_LKA):
       self.CP.alternativeExperience |= ALTERNATIVE_EXPERIENCE.ALKA
 
     openpilot_enabled_toggle = self.params.get_bool("OpenpilotEnabledToggle")
@@ -265,6 +269,9 @@ class Car:
     cs_ext = messaging.new_message('carStateExt')
     cs_ext.valid = CS.canValid
     cs_ext.carStateExt.lkasOn = getattr(self.CI.CS, 'lkas_on', False)
+    legacy = getattr(self.CI.CC, 'legacy_lka', None) if self.CP.brand == 'ford' else None
+    cs_ext.carStateExt.legacyLkaLatched = bool(legacy is not None and legacy.latched)
+    cs_ext.carStateExt.legacyLkaLatchReason = legacy.latch_reason if legacy is not None else ''
     self.pm.send('carStateExt', cs_ext)
 
     if RD is not None:
@@ -292,6 +299,14 @@ class Car:
       self.pm.send('sendcan', can_list_to_can_capnp(can_sends, msgtype='sendcan', valid=CS.canValid))
       if self.ford_bp is not None:
         self.ford_bp.log_diagnostics()
+      legacy = getattr(self.CI.CC, "legacy_lka", None) if self.CP.brand == "ford" else None
+      if legacy is not None and legacy.diagnostics.get("command_time_nanos") == now_nanos:
+        # Every emitted LKA packet, including the first interruption/latch, is
+        # observationally logged. A logging failure cannot affect actuation.
+        try:
+          cloudlog.event("bluedragon_ford_legacy_lka", **legacy.diagnostics)
+        except Exception:
+          pass
 
       self.CC_prev = CC
 

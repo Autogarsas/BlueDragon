@@ -6,7 +6,7 @@ from opendbc.car.ford.carcontroller import CarController
 from opendbc.car.ford.carstate import CarState
 from opendbc.car.ford.fordcan import CanBus
 from opendbc.car.ford.radar_interface import RadarInterface
-from opendbc.car.ford.values import CarControllerParams, DBC, Ecu, FordFlags, RADAR, FordSafetyFlags
+from opendbc.car.ford.values import CAR, CarControllerParams, DBC, Ecu, FordFlags, RADAR, FordSafetyFlags
 from opendbc.car.interfaces import CarInterfaceBase
 
 TransmissionType = structs.CarParams.TransmissionType
@@ -50,11 +50,12 @@ class CarInterface(CarInterfaceBase):
     if CAN.main >= 4:
       cfgs.insert(0, get_safety_config(structs.CarParams.SafetyModel.noOutput))
     ret.safetyConfigs = cfgs
-    if dp_params & structs.DPFlags.FordBluePilot:
+    legacy_lka = bool(dp_params & structs.DPFlags.FordLegacyLKA)
+    if dp_params & structs.DPFlags.FordBluePilot and not legacy_lka:
       ret.flags |= int(FordFlags.BLUEPILOT)
       ret.safetyConfigs[-1].safetyParam |= int(FordSafetyFlags.BLUEPILOT)
 
-    stock_acc = bool(dp_params & structs.DPFlags.FordStockLon)
+    stock_acc = legacy_lka or bool(dp_params & structs.DPFlags.FordStockLon)
     ret.alphaLongitudinalAvailable = ret.radarUnavailable and not stock_acc
     if stock_acc:
       ret.flags |= int(FordFlags.STOCK_ACC)
@@ -105,4 +106,17 @@ class CarInterface(CarInterfaceBase):
 
     ret.autoResumeSng = ret.minEnableSpeed == -1. and not stock_acc
     ret.centerToFront = ret.wheelbase * 0.44
+
+    if legacy_lka:
+      ret.flags |= int(FordFlags.LEGACY_LKA)
+      ret.steerAtStandstill = False
+      ret.minSteerSpeed = 15.0
+      if candidate != CAR.FORD_EDGE_MK2 or ret.flags & FordFlags.CANFD:
+        ret.dashcamOnly = True
+        ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.noOutput)]
+        carlog.error('Legacy LKA test mode supports only the Fusion retrofit/Edge MK2 profile')
+      else:
+        # A distinct, canonical Panda configuration; never inherit BluePilot,
+        # CAN FD, OP longitudinal or ALKA authority in this test mode.
+        ret.safetyConfigs[-1].safetyParam = int(FordSafetyFlags.STOCK_ACC | FordSafetyFlags.LEGACY_LKA)
     return ret

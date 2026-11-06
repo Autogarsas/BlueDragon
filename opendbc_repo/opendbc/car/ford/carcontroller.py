@@ -5,6 +5,7 @@ from opendbc.car import ACCELERATION_DUE_TO_GRAVITY, Bus, DT_CTRL, apply_hystere
 from opendbc.car.lateral import ISO_LATERAL_ACCEL, apply_std_steer_angle_limits
 from opendbc.car.ford import fordcan
 from opendbc.car.ford.bluepilot_lateral import BluePilotLateral
+from opendbc.car.ford.legacy_lka import LegacyLKALateral
 from opendbc.car.ford.values import CarControllerParams, FordFlags, CAR
 from opendbc.car.interfaces import CarControllerBase, V_CRUISE_MAX
 
@@ -66,6 +67,7 @@ class CarController(CarControllerBase):
     self.CAN = fordcan.CanBus(CP)
 
     self.bp_lateral = BluePilotLateral(CP) if CP.flags & FordFlags.BLUEPILOT else None
+    self.legacy_lka = LegacyLKALateral(CP) if CP.flags & FordFlags.LEGACY_LKA else None
     self.bp_model = None
     self.apply_curvature_last = 0
     self.anti_overshoot_curvature_last = 0
@@ -79,6 +81,11 @@ class CarController(CarControllerBase):
     self.distance_bar_frame = 0
 
   def update(self, CC, CS, now_nanos):
+    if self.legacy_lka is not None and self.CP.dashcamOnly:
+      output = CC.actuators.as_builder()
+      output.curvature = output.accel = output.gas = 0.0
+      return output, []
+
     can_sends = []
 
     actuators = CC.actuators
@@ -104,7 +111,11 @@ class CarController(CarControllerBase):
 
     ### lateral control ###
     # send steer msg at 20Hz
-    if (self.frame % CarControllerParams.STEER_STEP) == 0:
+    if (self.frame % CarControllerParams.STEER_STEP) == 0 and self.legacy_lka is not None:
+      # A neutral LCA heartbeat preserves ECU liveness without a second active
+      # steering interface. Panda rejects every non-neutral LCA packet in LKA mode.
+      can_sends.append(fordcan.create_lat_ctl_msg(self.packer, self.CAN, False, 0., 0., 0., 0.))
+    elif (self.frame % CarControllerParams.STEER_STEP) == 0:
       if self.bp_lateral is not None:
         lat = self.bp_lateral.update(CC, CS, self.bp_model)
         self.bp_lateral.diagnostics.update(
@@ -155,7 +166,13 @@ class CarController(CarControllerBase):
 
     # send lka msg at 33Hz
     if (self.frame % CarControllerParams.LKA_STEP) == 0:
-      can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN))
+      if self.legacy_lka is not None:
+        command = self.legacy_lka.update(CC, CS, now_nanos)
+        CS.legacy_lka_latched = self.legacy_lka.latched
+        can_sends.append(fordcan.create_legacy_lka_msg(self.CAN, command))
+        self.apply_curvature_last = -command.curvature_raw * 0.000005
+      else:
+        can_sends.append(fordcan.create_lka_msg(self.packer, self.CAN))
 
     ### longitudinal control ###
     # send acc msg at 50Hz
@@ -199,10 +216,12 @@ class CarController(CarControllerBase):
       self.gas = gas
 
     ### ui ###
-    send_ui = (self.main_on_last != main_on) or (self.lkas_enabled_last != CC.latActive) or (self.steer_alert_last != steer_alert)
+    effective_lat_active = CC.latActive if self.legacy_lka is None else self.legacy_lka.active_last
+    steer_alert |= self.legacy_lka is not None and self.legacy_lka.latched and CC.enabled
+    send_ui = (self.main_on_last != main_on) or (self.lkas_enabled_last != effective_lat_active) or (self.steer_alert_last != steer_alert)
     # send lkas ui msg at 1Hz or if ui state changes
     if (self.frame % CarControllerParams.LKAS_UI_STEP) == 0 or send_ui:
-      can_sends.append(fordcan.create_lkas_ui_msg(self.packer, self.CAN, main_on, CC.latActive, steer_alert, hud_control, CS.lkas_status_stock_values))
+      can_sends.append(fordcan.create_lkas_ui_msg(self.packer, self.CAN, main_on, effective_lat_active, steer_alert, hud_control, CS.lkas_status_stock_values))
 
     # send acc ui msg at 5Hz or if ui state changes
     if hud_control.leadDistanceBars != self.lead_distance_bars_last:
@@ -211,12 +230,12 @@ class CarController(CarControllerBase):
 
     if (self.frame % CarControllerParams.ACC_UI_STEP) == 0 or send_ui:
       show_distance_bars = self.frame - self.distance_bar_frame < 400
-      can_sends.append(fordcan.create_acc_ui_msg(self.packer, self.CAN, self.CP, main_on, CC.latActive,
+      can_sends.append(fordcan.create_acc_ui_msg(self.packer, self.CAN, self.CP, main_on, effective_lat_active,
                                                  fcw_alert, CS.out.cruiseState.standstill, show_distance_bars,
                                                  hud_control, CS.acc_tja_status_stock_values))
 
     self.main_on_last = main_on
-    self.lkas_enabled_last = CC.latActive
+    self.lkas_enabled_last = effective_lat_active
     self.steer_alert_last = steer_alert
     self.lead_distance_bars_last = hud_control.leadDistanceBars
 

@@ -50,6 +50,10 @@ with tempfile.TemporaryDirectory(prefix="params-verify-") as storage:
     assert p.get_default_value("dp_ford_stock_lon") is False
     p.put_bool("dp_ford_stock_lon", True, block=True)
     assert p.get_bool("dp_ford_stock_lon")
+  if "dp_ford_legacy_lka" in actual:
+    assert p.get_default_value("dp_ford_legacy_lka") is False
+    p.put_bool("dp_ford_legacy_lka", True, block=True)
+    assert p.get_bool("dp_ford_legacy_lka")
   assert not p.get_bool("dp_ford_bp_disable")
   assert p.get_default_value("dp_ford_bp_disable") is False
   assert p.get_default_value("dp_ford_bp_enable_human_turn_detection") is True

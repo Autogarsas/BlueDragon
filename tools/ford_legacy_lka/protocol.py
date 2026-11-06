@@ -14,7 +14,7 @@ VEHICLES = {
 
 # Include both candidate steering/speed sources. An address alone cannot identify
 # the layout: 0x76 has a different meaning in the two DBCs, for example.
-WATCH_IDS = frozenset((0x76, 0x82, 0x83, 0x8A, 0x91, 0x165, 0x202, 0x204,
+WATCH_IDS = frozenset((0x76, 0x7E, 0x82, 0x83, 0x85, 0x8A, 0x91, 0x165, 0x202, 0x204,
                        0x217, 0x246, 0x3A8, 0x3CA, 0x3CC, 0x3D3, 0x3D6, 0x415))
 LAYOUTS = ("fusion_2018", "ford_base")
 
@@ -88,8 +88,11 @@ class Session:
       raise ValueError("Invalid capture frame limit")
     self.vehicle, self.label, self.max_frames = vehicle, label, max_frames
     self.frames, self.states, self.errors = [], [], []
+    self.states_truncated = False
     self.counts = Counter()
     self.truncated = False
+    self._last_snapshots = {}
+    self._last_snapshot_times = {}
 
   def add_frame(self, stream: str, bus: int, address: int, data: bytes, mono_ns: int, valid: bool = True):
     if (stream not in ("can", "sendcan") or type(bus) is not int or bus < 0 or
@@ -114,12 +117,42 @@ class Session:
     self.frames.append(row)
 
   def add_state(self, state: dict):
-    # A 300-second capture at 10Hz stays below this bound. CAN evidence remains
-    # independent of carState, which may be absent on an unrecognized MKZ.
-    if len(self.states) < 4000:
+    # Retain every engagement/alert transition plus a one-second heartbeat.
+    # Saving unchanged selfdriveState at 100 Hz would exhaust the minute budget.
+    kind = state.get("kind")
+    if kind in ("selfdriveState", "carStateExt"):
+      snapshot = {k: v for k, v in state.items() if k != "mono_ns"}
+      t = state["mono_ns"]
+      previous_time = self._last_snapshot_times.get(kind)
+      if (snapshot == self._last_snapshots.get(kind) and previous_time is not None
+          and 0 <= t - previous_time < 1000000000):
+        return
+      self._last_snapshots[kind], self._last_snapshot_times[kind] = snapshot, t
+    # Retain a full minute of carState/carControl at 100Hz plus Panda/command
+    # diagnostics. Longer captures explicitly report state truncation.
+    if len(self.states) < 20000:
       self.states.append(state)
+    else:
+      self.states_truncated = True
 
   def report(self, metadata: dict | None = None) -> dict:
+    # These are host-controller observations, kept separate from EPS status.
+    # An already-latched capture cannot reveal the missing original trigger.
+    latches = []
+    current_latch = None
+    for state in sorted(self.states, key=lambda r: r["mono_ns"]):
+      if state.get("kind") != "legacyLkaCommand":
+        continue
+      command = state["command"]
+      if command.get("latched") and current_latch is None:
+        reason = command.get("latch_reason") or command.get("reason")
+        current_latch = {"first_observed_mono_ns": state["mono_ns"],
+                         "observed_trigger_reason": reason if reason != "latched_after_interruption" else None,
+                         "cleared_mono_ns": None}
+        latches.append(current_latch)
+      elif command.get("latched") is False and current_latch is not None:
+        current_latch["cleared_mono_ns"] = state["mono_ns"]
+        current_latch = None
     groups = defaultdict(list)
     for row in self.frames:
       if row["stream"] == "can" and "status_view" in row:
@@ -154,11 +187,15 @@ class Session:
     return {
       "format": "bluedragon-ford-lka-evidence-v1", "vehicle_label": self.vehicle,
       "vehicle_label_is_not_fingerprinting": True, "reported_setup": VEHICLES[self.vehicle], "label": self.label,
-      "capture_sends_can": False, "live_lka_mode_implemented": False,
+      "capture_sends_can": False, "live_lka_mode_implemented": None,
+      "collector_is_not_host_feature_detection": True,
       "layout_confirmed": False, "eps_acceptance_proven": False,
       "interpretation": "DBC views are hypotheses. Received/host TX frames and availability do not prove EPS execution or lockout removal.",
       "metadata": metadata or {}, "truncated": self.truncated, "errors": self.errors,
+      "states_truncated": self.states_truncated,
       "counts": [{"stream": s, "bus": b, "address": hex(a), "count": n}
                  for (s, b, a), n in sorted(self.counts.items())],
       "status_observations": status, "states": self.states, "frames": self.frames,
+      "host_latch_observations": latches,
     }
+

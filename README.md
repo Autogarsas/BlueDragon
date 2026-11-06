@@ -1,4 +1,4 @@
-# BlueDragon 1.1-dev3 — Ford factory ACC option
+# BlueDragon 1.1-dev4-lka — Legacy Ford LKA test option
 
 **dragonpilot features with BluePilot Ford steering.**
 
@@ -29,10 +29,17 @@ See [Pacifica ALKA](docs/PACIFICA_ALKA.md) for behavior, validation, update and
 rollback instructions. Enable **Settings → BlueDragon → Lateral → Always-on
 Lane Keeping Assist (ALKA)** and reboot to apply the setting.
 
-For the Fusion 2019 and MKZ 2016 LKA firmware work, see
-[Legacy LKA research](docs/FORD_LEGACY_LKA.md). The `ford-legacy-lka` research
-branch adds passive baseline capture and offline protocol checks. Live legacy
-LKA steering is not implemented in this stage; existing LCA and ACC are retained.
+The **`ford-lka-option`** branch adds an off-by-default, limited-authority active
+LKA test mode for the owner's Fusion retrofit using `FORD_EDGE_MK2`. It retains
+factory ACC and uses paired Ford safety parameter 24. LCA remains available with
+the option OFF. The initial test window is 54–108 km/h. Interruptions latch until
+disengagement; no periodic reset or automatic rearm masks them. Matching signed
+H7 firmware and a 170-key ARM settings library are packaged together.
+
+See [Legacy LKA test mode](docs/FORD_LEGACY_LKA.md) for raw bounds, diagnostics,
+recording and validation limits. Vehicle response/sign and a timer-lockout cause
+remain unverified. MKZ live support is deferred. The earlier `ford-legacy-lka`
+branch remains the passive research baseline.
 
 See [Stage 1 diagnostics](docs/FORD_DIAGNOSTICS_STAGE1.md) for validation and
 baseline logging instructions. Development installer:
