@@ -1,0 +1,54 @@
+name: Ford legacy LKA research checks
+
+on:
+  push:
+    branches: [ford-legacy-lka]
+  pull_request:
+    branches: [ford-stock-acc]
+    paths:
+      - 'tools/ford_legacy_lka/**'
+      - 'docs/FORD_LEGACY_LKA.md'
+      - '.github/workflows/ford-legacy-lka.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  passive-and-regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          sparse-checkout: |
+            cereal
+            common
+            openpilot
+            opendbc_repo
+            panda/board
+            panda/python
+            panda/tests/libpanda
+            site_scons
+            selfdrive/car
+            selfdrive/controls
+            dragonpilot/settings
+            system/hardware
+            tools/ford_legacy_lka
+            tools/ford_stock_acc
+            tools/ford_bluepilot
+            tools/chrysler_alka
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: python -m pip install numpy pycapnp==2.2.4 cffi pycryptodome scons==4.11.1
+      - name: Test passive capture, DBC interpretations and safety boundaries
+        env:
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/opendbc_repo
+        run: |
+          python -m unittest -v tools.ford_legacy_lka.test_research tools.ford_legacy_lka.test_dbc tools.ford_legacy_lka.test_passive_safety
+          python -m unittest -q opendbc.car.ford.tests.test_factory_acc opendbc.car.ford.tests.test_bluepilot opendbc.safety.tests.test_ford_factory_acc opendbc.safety.tests.test_ford_bluepilot opendbc.safety.tests.test_ford opendbc.car.chrysler.tests.test_alka opendbc.safety.tests.test_chrysler_alka opendbc.safety.tests.test_chrysler opendbc.safety.tests.test_alka.TestALKAFord opendbc.safety.tests.test_alka.TestALKADisabledBrands
+          python tools/ford_stock_acc/verify_release.py
+          git diff --exit-code 41fca99490a7bb45d745f5715068f24f56d3dcd6 HEAD -- common opendbc_repo panda selfdrive dragonpilot
