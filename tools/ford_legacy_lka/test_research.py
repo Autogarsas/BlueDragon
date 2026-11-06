@@ -202,7 +202,8 @@ class TestFordLKAEvidence(unittest.TestCase):
           patch.object(capture.time, "monotonic", side_effect=lambda: next(ticks)),
           patch.object(capture.time, "sleep")):
       capture.listen(s, 0.01)
-    self.assertEqual(["can", "sendcan", "carState", "carControl", "pandaStates", "logMessage"], created)
+    self.assertEqual(["can", "sendcan", "carState", "carControl", "pandaStates", "logMessage",
+                      "selfdriveState", "onroadEvents"], created)
     self.assertEqual(["can", "sendcan"], [r["stream"] for r in s.frames])
 
   def test_real_capnp_receive_and_panda_state_events(self):
@@ -253,3 +254,4 @@ class TestFordLKAEvidence(unittest.TestCase):
 
 if __name__ == "__main__":
   unittest.main()
+

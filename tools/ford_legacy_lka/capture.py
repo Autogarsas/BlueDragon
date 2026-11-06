@@ -55,8 +55,24 @@ def add_event(session: Session, event):
     session.add_state({"kind": kind, "mono_ns": int(event.logMonoTime), "valid": bool(event.valid),
                        "speed_mps": finite(c.vEgo), "steering_angle_deg": finite(c.steeringAngleDeg),
                        "driver_torque": finite(c.steeringTorque), "driver_steering": c.steeringPressed,
+                       "gas_pressed": c.gasPressed, "brake_pressed": c.brakePressed,
+                       "cruise_enabled": c.cruiseState.enabled, "cruise_available": c.cruiseState.available,
+                       "vehicle_sensors_invalid": c.vehicleSensorsInvalid,
+                       "button_events": [{"type": str(b.type), "pressed": b.pressed} for b in c.buttonEvents],
                        "can_valid": c.canValid, "temporary_fault": c.steerFaultTemporary,
                        "permanent_fault": c.steerFaultPermanent})
+  elif kind == "selfdriveState":
+    s = event.selfdriveState
+    session.add_state({"kind": kind, "mono_ns": int(event.logMonoTime), "valid": bool(event.valid),
+                       "state": str(s.state), "enabled": s.enabled, "active": s.active,
+                       "engageable": s.engageable, "alert_type": s.alertType,
+                       "alert_text_1": s.alertText1, "alert_text_2": s.alertText2})
+  elif kind == "onroadEvents":
+    types = ("enable", "noEntry", "warning", "userDisable", "softDisable", "immediateDisable",
+             "preEnable", "permanent", "overrideLateral", "overrideLongitudinal")
+    session.add_state({"kind": kind, "mono_ns": int(event.logMonoTime), "valid": bool(event.valid),
+                       "events": [{"name": str(e.name), "types": [t for t in types if getattr(e, t)]}
+                                  for e in event.onroadEvents]})
   elif kind == "carControl":
     c = event.carControl
     session.add_state({"kind": kind, "mono_ns": int(event.logMonoTime), "valid": bool(event.valid),
@@ -100,7 +116,8 @@ def read_logs(session: Session, paths: list[str]):
 
 def listen(session: Session, seconds: float):
   from cereal import messaging
-  streams = ("can", "sendcan", "carState", "carControl", "pandaStates", "logMessage")
+  streams = ("can", "sendcan", "carState", "carControl", "pandaStates", "logMessage",
+             "selfdriveState", "onroadEvents")
   sockets = {name: messaging.sub_sock(name, timeout=0) for name in streams}
   end = time.monotonic() + seconds
   try:
@@ -170,9 +187,11 @@ def main(argv=None):
                                                    if f["ecu"] in ("eps", "fwdCamera")],
                     "frame_counts": report["counts"],
                     "status_observations": report["status_observations"],
+                    "host_latch_observations": report["host_latch_observations"],
                     "layout_confirmed": False, "eps_acceptance_proven": False}, indent=2))
   return 1 if session.errors or not session.frames else 0
 
 
 if __name__ == "__main__":
   raise SystemExit(main())
+

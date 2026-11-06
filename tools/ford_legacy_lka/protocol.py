@@ -91,6 +91,8 @@ class Session:
     self.states_truncated = False
     self.counts = Counter()
     self.truncated = False
+    self._last_selfdrive_snapshot = None
+    self._last_selfdrive_time = None
 
   def add_frame(self, stream: str, bus: int, address: int, data: bytes, mono_ns: int, valid: bool = True):
     if (stream not in ("can", "sendcan") or type(bus) is not int or bus < 0 or
@@ -115,6 +117,15 @@ class Session:
     self.frames.append(row)
 
   def add_state(self, state: dict):
+    # Retain every engagement/alert transition plus a one-second heartbeat.
+    # Saving unchanged selfdriveState at 100 Hz would exhaust the minute budget.
+    if state.get("kind") == "selfdriveState":
+      snapshot = {k: v for k, v in state.items() if k != "mono_ns"}
+      t = state["mono_ns"]
+      if (snapshot == self._last_selfdrive_snapshot and self._last_selfdrive_time is not None
+          and 0 <= t - self._last_selfdrive_time < 1000000000):
+        return
+      self._last_selfdrive_snapshot, self._last_selfdrive_time = snapshot, t
     # Retain a full minute of carState/carControl at 100Hz plus Panda/command
     # diagnostics. Longer captures explicitly report state truncation.
     if len(self.states) < 20000:
@@ -123,6 +134,23 @@ class Session:
       self.states_truncated = True
 
   def report(self, metadata: dict | None = None) -> dict:
+    # These are host-controller observations, kept separate from EPS status.
+    # An already-latched capture cannot reveal the missing original trigger.
+    latches = []
+    current_latch = None
+    for state in sorted(self.states, key=lambda r: r["mono_ns"]):
+      if state.get("kind") != "legacyLkaCommand":
+        continue
+      command = state["command"]
+      if command.get("latched") and current_latch is None:
+        reason = command.get("reason")
+        current_latch = {"first_observed_mono_ns": state["mono_ns"],
+                         "observed_trigger_reason": reason if reason != "latched_after_interruption" else None,
+                         "cleared_mono_ns": None}
+        latches.append(current_latch)
+      elif command.get("latched") is False and current_latch is not None:
+        current_latch["cleared_mono_ns"] = state["mono_ns"]
+        current_latch = None
     groups = defaultdict(list)
     for row in self.frames:
       if row["stream"] == "can" and "status_view" in row:
@@ -166,4 +194,6 @@ class Session:
       "counts": [{"stream": s, "bus": b, "address": hex(a), "count": n}
                  for (s, b, a), n in sorted(self.counts.items())],
       "status_observations": status, "states": self.states, "frames": self.frames,
+      "host_latch_observations": latches,
     }
+

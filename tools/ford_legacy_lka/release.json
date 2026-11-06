@@ -1,5 +1,5 @@
 {
-  "version": "1.1-dev4-lka",
+  "version": "1.1-dev4-lka-diag1",
   "channel": "ford-lka-option",
   "base_commit": "a78a1d5462919e71c03bf24134dff9ba93b982bc",
   "build_source_commit": "13771fee2828a7b1a3614f65542e30d006d07183",
@@ -29,8 +29,8 @@
     "opendbc_repo/opendbc/car/ford/carstate.py": "745197a7285a2e5c7b0d5accc81430c1cdf4adb08c7ab5836dc0623069310cd2",
     "opendbc_repo/opendbc/car/ford/fordcan.py": "15d3048c5d26eb6fde3993e3af168678d16106c1f3e8af9c3d84b86b893f90c2",
     "opendbc_repo/opendbc/car/ford/legacy_lka.py": "a78fe6ae460b5451e2b3ce01cdac866694f98575629474e51297d0926d7ea94d",
-    "tools/ford_legacy_lka/capture.py": "a78b8e8fa1a9117a05f23471bdca9900e2889fe93f365193b580690f6a70b3d6",
-    "tools/ford_legacy_lka/protocol.py": "aebc18d755593fa9b28208ed926d80186b764b8e638eb6d8cd4c6f6bd19395fd",
+    "tools/ford_legacy_lka/capture.py": "8f1ef956fbc3c27e4140c267dd2379850664d50b40aa8bb2a35f4b5aefa58e5e",
+    "tools/ford_legacy_lka/protocol.py": "0bd69bb061ed50616fd3eed38f4ff3199728e70678799b1958b19ad5c2ad7fd1",
     "tools/ford_legacy_lka/check_option.py": "53d7bb352ed086efb6c14391987b91925714dd9f0fed6c57c6e30b2697a6d54b",
     "tools/ford_legacy_lka/verify_release.py": "37ed321bf7c2d6de4f4c93c25535a2755f37b4a52c72f62c83e18c53a0b437a2",
     "tools/ford_legacy_lka/install.py": "616fad9d505e4ccc8f3c2234f1ccd93604f260eb0bc91135628c530c6c46b533",
@@ -61,5 +61,13 @@
   "interruption_policy": "latch until actual disengagement; no periodic resets or automatic rearm",
   "h7_build_artifact": 13506714985,
   "first_reference_tolerance_raw": 12,
-  "first_curvature_tolerance_raw": 8
+  "first_curvature_tolerance_raw": 8,
+  "diagnostics_validation": {
+    "offline_tests_passed": 24,
+    "retry_replay_frames": 107196,
+    "retry_replay_states": 14601,
+    "retry_frames_states_eps_transitions_preserved": true,
+    "native_cereal_integration_run": false,
+    "actuation_or_panda_changes": false
+  }
 }
