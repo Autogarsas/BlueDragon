@@ -86,8 +86,13 @@ static bool ford_lka_tx(const CANPacket_t *msg) {
     // Allow a small direction deadband. A release/re-engage cannot seed a fake
     // reference: the first active packet is rate-limited from the measured wheel.
     violation |= ((action == 2U) && (error > 3)) || ((action == 4U) && (error < -3));
-    violation |= safety_max_limit_check(reference, previous_reference + 2, previous_reference - 2);
-    violation |= safety_max_limit_check(curvature, previous_curvature + 2, previous_curvature - 2);
+    // Initial envelopes account for the host's sensor transport delay and yaw
+    // quantization. They remain anchored to fresh measurements, never a host
+    // reset value. Subsequent accepted active packets have a strict 2-count slew.
+    const int reference_delta = ford_lka_active_last ? 2 : 12;
+    const int curvature_delta = ford_lka_active_last ? 2 : 8;
+    violation |= safety_max_limit_check(reference, previous_reference + reference_delta, previous_reference - reference_delta);
+    violation |= safety_max_limit_check(curvature, previous_curvature + curvature_delta, previous_curvature - curvature_delta);
     // 0x3CA curvature has four times as many counts/m^-1 as angle_meas here.
     violation |= safety_max_limit_check(curvature, (angle_meas.max * 4) + 200, (angle_meas.min * 4) - 200);
     if (ford_lka_active_last) {

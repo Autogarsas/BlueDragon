@@ -24,7 +24,7 @@ def params(candidate=CAR.FORD_EDGE_MK2, legacy=False, bluepilot=True, factory=Tr
 def state(cp, now=1_000_000_000):
   cs = car_state(cp)
   cs.out.canValid = True
-  cs.legacy_lka_feedback = dict(availability=3, denied=False, time_nanos=now)
+  cs.legacy_lka_feedback = dict(availability=3, denied=False, time_nanos=now, wheel_time_nanos=now, wheel_angle_deg=0.0)
   return cs
 
 
@@ -82,6 +82,7 @@ class TestLegacyLKAOption(unittest.TestCase):
     for frame in range(900):
       now = 1_000_000_000 + frame * 10_000_000
       cs.legacy_lka_feedback['time_nanos'] = now
+      cs.legacy_lka_feedback['wheel_time_nanos'] = now
       cc.actuators.curvature = 0.0006 * math.sin(frame / 150)
       output, messages = controller.update(cc.as_reader(), cs, now)
       for address, data, bus in messages:
@@ -129,13 +130,31 @@ class TestLegacyLKAOption(unittest.TestCase):
     self.assertFalse(controller.latched)
     cc.enabled = cc.latActive = True
     cs.legacy_lka_feedback['time_nanos'] = 1_150_000_000
+    cs.legacy_lka_feedback['wheel_time_nanos'] = 1_150_000_000
     self.assertNotEqual(0, controller.update(cc, cs, 1_150_000_000).action)
 
   def test_first_packet_is_rate_limited_from_measured_angle(self):
-    cp = params(legacy=True); cs = state(cp); cs.out.steeringAngleDeg = 3.0
+    cp = params(legacy=True); cs = state(cp); cs.out.steeringAngleDeg = 3.0; cs.legacy_lka_feedback['wheel_angle_deg'] = 3.0
     cc = structs.CarControl(enabled=True, latActive=True)
     c = LegacyLKALateral(cp).update(cc, cs, 1_000_000_000)
     self.assertLessEqual(abs(c.reference_raw - round(3.0 / REFERENCE_SCALE)), 2)
+
+  def test_real_sccm_parser_supplies_independent_angle_and_timestamp(self):
+    from opendbc.can import CANPacker
+    from opendbc.car import Bus
+    from opendbc.car.ford.carstate import CarState
+    cp = params(legacy=True)
+    cs = CarState(cp)
+    parsers = cs.get_can_parsers(cp)
+    wheel = CANPacker('ford_fusion_2018_pt').make_can_msg(
+      'Steering_Wheel_Data_CG1', 0, {'SteWhlRelInit_An_Sns': 3.4})
+    status = CANPacker('ford_lincoln_base_pt').make_can_msg(
+      'Lane_Assist_Data3_FD1', 0, {'LaActAvail_D_Actl': 3})
+    parsers['legacy_wheel'].update([(1_000_000_000, [wheel])])
+    parsers[Bus.pt].update([(1_000_000_000, [status])])
+    cs.update(parsers)
+    self.assertAlmostEqual(3.4, cs.legacy_lka_feedback['wheel_angle_deg'])
+    self.assertEqual(1_000_000_000, cs.legacy_lka_feedback['wheel_time_nanos'])
 
   def test_invalid_stale_override_speed_and_fault_inputs(self):
     cp = params(legacy=True)
@@ -145,6 +164,7 @@ class TestLegacyLKAOption(unittest.TestCase):
                         ('steerFaultTemporary', True), ('steerFaultPermanent', True),
                         ('vEgoRaw', float('nan')), ('yawRate', float('inf'))]:
       cs = state(cp); setattr(cs.out, name, value)
+      if name == 'steeringAngleDeg':cs.legacy_lka_feedback['wheel_angle_deg'] = value
       cc = structs.CarControl(enabled=True, latActive=True)
       self.assertEqual(0, LegacyLKALateral(cp).update(cc, cs, 1_000_000_000).action, name)
     for feedback in ({}, dict(availability=1, denied=False, time_nanos=1_000_000_000),
@@ -160,6 +180,7 @@ class TestLegacyLKAOption(unittest.TestCase):
     for tick in range(700):
       now = 1_000_000_000 + tick * 30_000_000
       cs.legacy_lka_feedback['time_nanos'] = now
+      cs.legacy_lka_feedback['wheel_time_nanos'] = now
       self.assertNotEqual(0, controller.update(cc, cs, now).action)
 
 

@@ -139,10 +139,13 @@ class CarState(CarStateBase):
 
     if self.CP.flags & FordFlags.LEGACY_LKA:
       status = cp.vl["Lane_Assist_Data3_FD1"]
+      wheel = can_parsers["legacy_wheel"]
       self.legacy_lka_feedback = {
         "availability": int(status["LaActAvail_D_Actl"]),
         "denied": bool(status["LaActDeny_B_Actl"]),
         "time_nanos": cp.ts_nanos["Lane_Assist_Data3_FD1"]["LaActAvail_D_Actl"],
+        "wheel_angle_deg": wheel.vl["Steering_Wheel_Data_CG1"]["SteWhlRelInit_An_Sns"],
+        "wheel_time_nanos": wheel.ts_nanos["Steering_Wheel_Data_CG1"]["SteWhlRelInit_An_Sns"],
       }
       ret.steerFaultTemporary |= status["LaActAvail_D_Actl"] not in (2, 3) or bool(status["LaActDeny_B_Actl"])
 
@@ -151,9 +154,13 @@ class CarState(CarStateBase):
   @staticmethod
   def get_can_parsers(CP):
     extra = [("Lane_Assist_Data3_FD1", 33)] if CP.flags & FordFlags.LEGACY_LKA else []
-    return {
+    parsers = {
       Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt],
                         ([("SteeringPinion_Data_Alt", 100), ("ParkAid_Data", 50), ("TransGearData", 10)]
                         if CP.flags & FordFlags.ALT_STEER_ANGLE else []) + extra, CanBus(CP).main),
       Bus.cam: CANParser(DBC[CP.carFingerprint][Bus.pt], [], CanBus(CP).camera),
     }
+    if CP.flags & FordFlags.LEGACY_LKA:
+      # Decode the same SCCM signal independently checked by Panda.
+      parsers["legacy_wheel"] = CANParser("ford_fusion_2018_pt", [("Steering_Wheel_Data_CG1", 50)], CanBus(CP).main)
+    return parsers

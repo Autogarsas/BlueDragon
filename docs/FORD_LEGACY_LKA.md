@@ -32,10 +32,11 @@ no brake/gas input, no EPS fault, and no driver override.
 The packet uses only the observed ordinary intervention codes 2 and 4 and an
 inactive code of 0. LDW requests, driver-override requests and quick ramp are
 never used. Signed reference is limited to **+/-128 raw counts** about 2048;
-curvature is limited to **+/-300 raw counts**, or +/-0.0015 m^-1. Both fields
-change by at most **two raw counts per 30 ms update**. The first packet is
-bounded from the independent measured wheel/yaw state, rather than an arbitrary
-host-seeded value. Nonfinite or out-of-authority input releases the command.
+curvature is limited to **+/-300 raw counts**, or +/-0.0015 m^-1. After entry, both fields change by at most **two raw counts per 30 ms update**.
+The host seeds from the SCCM wheel signal, independently decoded on Panda.
+The first Panda envelope allows +/-12 reference counts around the fresh measured
+wheel and +/-8 curvature counts around fresh yaw/speed for transport delay and
+quantization, rather than an arbitrary host-seeded value. Nonfinite or out-of-authority input releases the command.
 
 The historical Ford LKA encoder names the reference scale as 0.04297 steering-
 wheel degrees/count; the newer Ford DBC names the same field as 0.05 mrad/count.
@@ -49,9 +50,10 @@ behind an unlimited encoder. There is no selectable larger-authority mode.
 Panda independently checks absolute raw limits, raw slew, a 2-degree historical-
 equivalent wheel error, direction consistency, and a 0.001 m^-1 curvature error
 from yaw/speed. It also requires all ten RX checks to have been seen with good
-checksums/quality/counters and age <=150 ms. The SCCM wheel-angle view on 0x76 is
+checksums/quality/counters and age <=150 ms. The host uses a separate older-DBC parser for the exact SCCM wheel-angle
+field on 0x76; Panda decodes the bits independently. That angle is
 cross-checked against the existing camera reference on 0x3A8 to within 0.5 degree.
-Driver torque above 1 Nm, sensor mismatch, denial/unavailability, wrong bus,
+Driver torque above 1 Nm, camera/SCCM angle mismatch, denial/unavailability, wrong bus,
 wrong action, reserved fields, an active packet interval outside 20–100 ms, and
 conflicting mode flags are rejected. The active mode exists only in debug H7
 builds; a release build or invalid parameter pairing fails closed.

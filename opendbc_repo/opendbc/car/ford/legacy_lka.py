@@ -47,11 +47,11 @@ class LegacyLKALateral:
     out = CS.out
     feedback = getattr(CS, "legacy_lka_feedback", {})
     speed = float(out.vEgoRaw)
-    measured = float(out.steeringAngleDeg)
+    measured = float(feedback.get("wheel_angle_deg", math.nan))
     requested = float(CC.actuators.curvature)
     reason = "active"
     numeric = (speed, measured, requested, float(out.yawRate), float(out.steeringTorque))
-    age = (now_nanos - feedback.get("time_nanos", -1)) / 1e9
+    age = (now_nanos - min(feedback.get("time_nanos", -1), feedback.get("wheel_time_nanos", -1))) / 1e9
     interval = None if self.last_time is None else (now_nanos - self.last_time) / 1e9
     available = feedback.get("availability") in (2, 3) and not feedback.get("denied", True)
 

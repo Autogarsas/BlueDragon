@@ -101,6 +101,8 @@ class TestFordLegacyLKASafety(unittest.TestCase):
 
   def test_rate_limits_and_rejected_packets_do_not_seed_history(self):
     self.inputs()
+    self.assertTrue(self.tx())
+    self.now += 30_000;self.inputs()
     self.assertFalse(self.tx(reference=3))
     self.assertFalse(self.tx(reference=4))
     self.assertTrue(self.tx(reference=2,curvature=2))
@@ -120,6 +122,8 @@ class TestFordLegacyLKASafety(unittest.TestCase):
     for _ in range(100):
       self.assertTrue(self.tx(action=0))
       self.assertFalse(self.tx(reference=128))
+      self.assertFalse(self.tx(reference=13))
+      self.assertFalse(self.tx(curvature=9))
       self.assertTrue(self.tx(reference=2))
       self.now+=30_000;self.inputs()
 
@@ -187,6 +191,8 @@ class TestFordLegacyLKASafety(unittest.TestCase):
       cs.out.steeringAngleDeg=wheel
       cs.out.yawRate=curvature*0.000005*20
       cs.legacy_lka_feedback['time_nanos']=self.now*1000
+      cs.legacy_lka_feedback['wheel_time_nanos']=self.now*1000
+      cs.legacy_lka_feedback['wheel_angle_deg']=wheel
       cc.actuators.curvature=0.0004*math.sin(tick/80)
       command=controller.update(cc,cs,self.now*1000)
       self.assertNotEqual(0,command.action)
