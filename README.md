@@ -29,6 +29,11 @@ See [Pacifica ALKA](docs/PACIFICA_ALKA.md) for behavior, validation, update and
 rollback instructions. Enable **Settings → BlueDragon → Lateral → Always-on
 Lane Keeping Assist (ALKA)** and reboot to apply the setting.
 
+For the Fusion 2019 and MKZ 2016 LKA firmware work, see
+[Legacy LKA research](docs/FORD_LEGACY_LKA.md). The `ford-legacy-lka` research
+branch adds passive baseline capture and offline protocol checks. Live legacy
+LKA steering is not implemented in this stage; existing LCA and ACC are retained.
+
 See [Stage 1 diagnostics](docs/FORD_DIAGNOSTICS_STAGE1.md) for validation and
 baseline logging instructions. Development installer:
 
