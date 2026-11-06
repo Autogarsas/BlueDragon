@@ -1,5 +1,5 @@
 {
-  "version": "1.1-dev4-lka-diag1",
+  "version": "1.1-dev5-lka-host-stop",
   "channel": "ford-lka-option",
   "base_commit": "a78a1d5462919e71c03bf24134dff9ba93b982bc",
   "build_source_commit": "13771fee2828a7b1a3614f65542e30d006d07183",
@@ -21,20 +21,26 @@
     "opendbc_repo/opendbc/car/ford/interface.py": "ecb67a4693d927343045be8616d4b3f892d85128b27acff21238bd47400dbdc3",
     "opendbc_repo/opendbc/car/ford/carcontroller.py": "ce1c2e49366094d3cd56fe49a6c5b35548ace0ca5c6c30cfe6a584881f6be894",
     "opendbc_repo/opendbc/car/ford/values.py": "6dde0d34daa0faf3421f1365fa608dfb3f39795a2930880e11aad795a5ba6273",
-    "selfdrive/car/card.py": "fe4a4c0b6668bccd0306c3f4220d45d043cdcddd98a2544d0b98bdca76c639b3",
+    "selfdrive/car/card.py": "59ecff956296f5c53bbd3f2aa0a2745e1b79fb7d578becef55bb3f16dcfba66f",
     "dragonpilot/settings/brand-ford-stock-acc.py": "0b9dcb186581b400d9ed736f3ec76349999a6c47088810de6db516fa5b19ab4c",
     "tools/ford_bluepilot/rebuild_params.py": "9bde3636b9e3bf67c508646d70a206d0c20cb641771414b94dcafe8bf4dad663",
     "dragonpilot/bluedragon.py": "4ed69f5fdc1747eee3440affddf3c6c4d8e532206710330f6285e2da217789d0",
     "dragonpilot/settings/brand-ford-legacy-lka.py": "560baad8c4abf969bb4f7e18a688989efad45e89bb3c12a85ca19001f0aa9b81",
-    "opendbc_repo/opendbc/car/ford/carstate.py": "745197a7285a2e5c7b0d5accc81430c1cdf4adb08c7ab5836dc0623069310cd2",
+    "opendbc_repo/opendbc/car/ford/carstate.py": "b04bb9fd9a49f896f61f8de79f3d179c9b0bcff34b9bddbee3d5320e095fed30",
     "opendbc_repo/opendbc/car/ford/fordcan.py": "15d3048c5d26eb6fde3993e3af168678d16106c1f3e8af9c3d84b86b893f90c2",
-    "opendbc_repo/opendbc/car/ford/legacy_lka.py": "a78fe6ae460b5451e2b3ce01cdac866694f98575629474e51297d0926d7ea94d",
-    "tools/ford_legacy_lka/capture.py": "8f1ef956fbc3c27e4140c267dd2379850664d50b40aa8bb2a35f4b5aefa58e5e",
-    "tools/ford_legacy_lka/protocol.py": "0bd69bb061ed50616fd3eed38f4ff3199728e70678799b1958b19ad5c2ad7fd1",
-    "tools/ford_legacy_lka/check_option.py": "53d7bb352ed086efb6c14391987b91925714dd9f0fed6c57c6e30b2697a6d54b",
+    "opendbc_repo/opendbc/car/ford/legacy_lka.py": "0dea9c92c6c24ac287a66db3d04d6203051da64dba69c53b3547be5c263a7bf9",
+    "tools/ford_legacy_lka/capture.py": "a9af00578274abb3c4773f0d378f0d80c37e908ca1c1a73c76a4ee0dc87c6863",
+    "tools/ford_legacy_lka/protocol.py": "7e6af9cf13f4d4c44430dc744fd971e8a4971d42193ff773e00c022e57bb02da",
+    "tools/ford_legacy_lka/check_option.py": "e04b68493f4ead56d688dd21135ef67c2191c594423ae5dda0f404d9364dd31d",
     "tools/ford_legacy_lka/verify_release.py": "37ed321bf7c2d6de4f4c93c25535a2755f37b4a52c72f62c83e18c53a0b437a2",
-    "tools/ford_legacy_lka/install.py": "616fad9d505e4ccc8f3c2234f1ccd93604f260eb0bc91135628c530c6c46b533",
-    "tools/ford_legacy_lka/check_firmware.py": "a41c4d7ad6ea48e1c2a4f75c18abc0d9402cbd1e473e2818f7faf0f7b4db4989"
+    "tools/ford_legacy_lka/install.py": "b763519b21a0732f1a05b5b12f8769681b6b63e9b18a927065c279020dca25ca",
+    "tools/ford_legacy_lka/check_firmware.py": "a41c4d7ad6ea48e1c2a4f75c18abc0d9402cbd1e473e2818f7faf0f7b4db4989",
+    "cereal/custom.capnp": "8ddadb25bea98308090ac294d524555e344c40360200fe10eebfaebe11f59d0d",
+    "cereal/log.capnp": "7e2044bfb8c2fa896fed67fa97ded54bb3d46b61e6ff58aedbf0182c31d97beb",
+    "selfdrive/car/ford_legacy_lka.py": "8298df6058a94271cbbef32cacaf52642e9b089113a4511286c99d39b001e025",
+    "selfdrive/controls/controlsd.py": "3880ba1ebbf53da2c29ca7234aa467f39083ebd623e78d497ca44ad6586d6739",
+    "selfdrive/selfdrived/events.py": "dd7edb0805ddbdd757e5cadaccff047aca95c403a8fc13dbc6d4789696e5c465",
+    "selfdrive/selfdrived/selfdrived.py": "d30df024145fe65f24681da9ccc80d6519236edafc470b98d9e5287d01471701"
   },
   "validation": {
     "tests_run": 538,
@@ -69,5 +75,14 @@
     "retry_frames_states_eps_transitions_preserved": true,
     "native_cereal_integration_run": false,
     "actuation_or_panda_changes": false
+  },
+  "host_stop_validation": {
+    "host_tests_passed": 33,
+    "native_schema_tests_pending_on_device": 2,
+    "recorded_input_controller_updates": 2000,
+    "command_and_latch_decisions_unchanged": true,
+    "panda_firmware_or_limits_changed": false,
+    "installer_runs_native_tests_before_reboot": true,
+    "native_service_imports_pending_on_device": true
   }
 }

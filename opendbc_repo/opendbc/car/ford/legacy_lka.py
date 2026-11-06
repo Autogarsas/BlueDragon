@@ -41,6 +41,7 @@ class LegacyLKALateral:
     self.direction_last = 4
     self.last_time = None
     self.latched = False
+    self.latch_reason = ""
     self.diagnostics = {"sequence": 0}
 
   def update(self, CC, CS, now_nanos):
@@ -57,6 +58,7 @@ class LegacyLKALateral:
 
     if not CC.enabled:
       self.latched = False
+      self.latch_reason = ""
       reason = "not_requested"
     elif self.latched:
       reason = "latched_after_interruption"
@@ -108,6 +110,8 @@ class LegacyLKALateral:
       if abs(error) > 1.9 or abs(reference) > MAX_REFERENCE_RAW or abs(curvature) > MAX_CURVATURE_RAW:
         reason = "output_tracking_limit"
         self.latched = bool(CC.enabled and self.active_last)
+        if self.latched:
+          self.latch_reason = reason
         self.reference_last = self.curvature_last = 0
       else:
         command = LKACommand(direction, reference, curvature)
@@ -116,6 +120,10 @@ class LegacyLKALateral:
     else:
       if CC.enabled and self.active_last:
         self.latched = True
+        self.latch_reason = reason
+        if reason == "cruise_or_brake":
+          self.latch_reason = ("brake_pressed" if out.brakePressed else
+                               "accelerator_pressed" if out.gasPressed else "cruise_inactive")
       self.reference_last = self.curvature_last = 0
 
     self.active_last = command.action != 0
@@ -129,5 +137,5 @@ class LegacyLKALateral:
       availability=feedback.get("availability"), denied=feedback.get("denied"),
       speed_mps=speed if math.isfinite(speed) else None,
       steering_angle_deg=measured if math.isfinite(measured) else None,
-      latched=self.latched)
+      latched=self.latched, latch_reason=self.latch_reason)
     return command

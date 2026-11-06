@@ -14,6 +14,7 @@ from openpilot.selfdrive.locationd.calibrationd import MIN_SPEED_FILTER
 from openpilot.system.micd import SAMPLE_RATE, SAMPLE_BUFFER
 from openpilot.selfdrive.ui.feedback.feedbackd import FEEDBACK_MAX_DURATION
 from openpilot.system.hardware import HARDWARE
+from openpilot.selfdrive.car.ford_legacy_lka import stop_title
 
 AlertSize = log.SelfdriveState.AlertSize
 AlertStatus = log.SelfdriveState.AlertStatus
@@ -354,6 +355,20 @@ def wrong_car_mode_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubM
   if CP.brand == "honda":
     text = "Enable Main Switch to Engage"
   return NoEntryAlert(text)
+
+
+def ford_lka_latched_alert(CP, CS, sm, metric, soft_disable_time, personality):
+  return Alert(stop_title(sm['carStateExt'].legacyLkaLatchReason),
+               "Steer manually; cancel cruise, then SET",
+               AlertStatus.userPrompt, AlertSize.mid, Priority.LOW,
+               VisualAlert.steerRequired, AudibleAlert.prompt, 0.4)
+
+
+def ford_lka_latched_no_entry(CP, CS, sm, metric, soft_disable_time, personality):
+  alert = NoEntryAlert("Cancel cruise, then SET again", alert_text_1="LKA stopped")
+  # Real EPS and system faults retain higher priority than this host notice.
+  alert.priority = Priority.LOWER
+  return alert
 
 
 def joystick_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster, metric: bool, soft_disable_time: int, personality) -> Alert:
@@ -749,6 +764,12 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
   EventName.wrongCruiseMode: {
     ET.USER_DISABLE: EngagementAlert(AudibleAlert.disengage),
     ET.NO_ENTRY: NoEntryAlert("Adaptive Cruise Disabled"),
+  },
+
+  EventName.fordLegacyLkaLatched: {
+    ET.WARNING: ford_lka_latched_alert,
+    ET.NO_ENTRY: ford_lka_latched_no_entry,
+    ET.OVERRIDE_LATERAL: EmptyAlert,
   },
 
   EventName.steerTempUnavailable: {

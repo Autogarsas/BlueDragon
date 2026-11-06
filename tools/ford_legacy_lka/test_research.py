@@ -203,7 +203,7 @@ class TestFordLKAEvidence(unittest.TestCase):
           patch.object(capture.time, "sleep")):
       capture.listen(s, 0.01)
     self.assertEqual(["can", "sendcan", "carState", "carControl", "pandaStates", "logMessage",
-                      "selfdriveState", "onroadEvents"], created)
+                      "selfdriveState", "onroadEvents", "carStateExt"], created)
     self.assertEqual(["can", "sendcan"], [r["stream"] for r in s.frames])
 
   def test_real_capnp_receive_and_panda_state_events(self):

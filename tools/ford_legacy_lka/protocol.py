@@ -91,8 +91,8 @@ class Session:
     self.states_truncated = False
     self.counts = Counter()
     self.truncated = False
-    self._last_selfdrive_snapshot = None
-    self._last_selfdrive_time = None
+    self._last_snapshots = {}
+    self._last_snapshot_times = {}
 
   def add_frame(self, stream: str, bus: int, address: int, data: bytes, mono_ns: int, valid: bool = True):
     if (stream not in ("can", "sendcan") or type(bus) is not int or bus < 0 or
@@ -119,13 +119,15 @@ class Session:
   def add_state(self, state: dict):
     # Retain every engagement/alert transition plus a one-second heartbeat.
     # Saving unchanged selfdriveState at 100 Hz would exhaust the minute budget.
-    if state.get("kind") == "selfdriveState":
+    kind = state.get("kind")
+    if kind in ("selfdriveState", "carStateExt"):
       snapshot = {k: v for k, v in state.items() if k != "mono_ns"}
       t = state["mono_ns"]
-      if (snapshot == self._last_selfdrive_snapshot and self._last_selfdrive_time is not None
-          and 0 <= t - self._last_selfdrive_time < 1000000000):
+      previous_time = self._last_snapshot_times.get(kind)
+      if (snapshot == self._last_snapshots.get(kind) and previous_time is not None
+          and 0 <= t - previous_time < 1000000000):
         return
-      self._last_selfdrive_snapshot, self._last_selfdrive_time = snapshot, t
+      self._last_snapshots[kind], self._last_snapshot_times[kind] = snapshot, t
     # Retain a full minute of carState/carControl at 100Hz plus Panda/command
     # diagnostics. Longer captures explicitly report state truncation.
     if len(self.states) < 20000:
@@ -143,7 +145,7 @@ class Session:
         continue
       command = state["command"]
       if command.get("latched") and current_latch is None:
-        reason = command.get("reason")
+        reason = command.get("latch_reason") or command.get("reason")
         current_latch = {"first_observed_mono_ns": state["mono_ns"],
                          "observed_trigger_reason": reason if reason != "latched_after_interruption" else None,
                          "cleared_mono_ns": None}

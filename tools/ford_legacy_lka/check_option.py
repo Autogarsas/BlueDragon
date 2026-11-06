@@ -27,7 +27,7 @@ def main():
     print('Configured safety:', expected)
     if legacy:print('Test limits: 54-108 km/h; reference +/-128 raw; curvature +/-0.0015 m^-1')
     if cp.brand == 'ford' and selected != legacy:print('Restart while parked to apply the saved selection')
-  sm = messaging.SubMaster(['carState', 'carControl', 'pandaStates'])
+  sm = messaging.SubMaster(['carState', 'carControl', 'pandaStates', 'carStateExt'])
   end = time.monotonic() + 3
   while time.monotonic() < end:sm.update(200)
   print('Services alive:', sm.alive)
@@ -35,6 +35,10 @@ def main():
     cs=sm['carState']
     print('CAN valid:',cs.canValid,'ACC fault:',cs.accFaulted,'Steering temporary fault:',cs.steerFaultTemporary)
   if sm.seen['carControl']:print('Openpilot longitudinal active:',sm['carControl'].longActive)
+  if sm.seen['carStateExt']:
+    ext = sm['carStateExt']
+    print('Host LKA latched:', ext.legacyLkaLatched, 'Reason:', ext.legacyLkaLatchReason or 'none',
+          'Status valid/live:', sm.all_checks(['carStateExt']))
   for p in sm['pandaStates']:
     print('Panda:',p.pandaType,'Safety:',p.safetyModel,'Parameter:',p.safetyParam,
           'RX checks invalid:',p.safetyRxChecksInvalid,'TX blocked counter:',p.safetyTxBlocked)

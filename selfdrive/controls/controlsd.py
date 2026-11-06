@@ -12,6 +12,7 @@ from openpilot.common.swaglog import cloudlog
 from opendbc.car.car_helpers import interfaces
 from opendbc.car.chrysler.alka import pacifica_steering_allowed
 from opendbc.car.chrysler.values import ChryslerFlags
+from opendbc.car.ford.values import FordFlags
 from opendbc.car.vehicle_model import VehicleModel
 from opendbc.safety import ALTERNATIVE_EXPERIENCE
 from openpilot.selfdrive.controls.lib.drive_helpers import clip_curvature
@@ -22,6 +23,7 @@ from openpilot.selfdrive.controls.lib.latcontrol_torque import LatControlTorque
 from openpilot.selfdrive.controls.lib.longcontrol import LongControl
 from openpilot.selfdrive.modeld.modeld import LAT_SMOOTH_SECONDS
 from openpilot.selfdrive.locationd.helpers import PoseCalibrator, Pose
+from openpilot.selfdrive.car.ford_legacy_lka import lateral_allowed
 
 State = log.SelfdriveState.OpenpilotState
 LaneChangeState = log.LaneChangeState
@@ -110,6 +112,9 @@ class Controls:
       self.alka_active = lkas_on and gear_ok and calibrated and not CS.seatbeltUnlatched and not CS.doorOpen
     CC.latActive = (self.sm['selfdriveState'].active or self.alka_active) and not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
                    (not standstill or self.CP.steerAtStandstill)
+    if self.CP.brand == "ford" and self.CP.flags & FordFlags.LEGACY_LKA:
+      CC.latActive = CC.latActive and lateral_allowed(
+        self.sm.all_checks(['carStateExt']), self.sm['carStateExt'].legacyLkaLatched)
     if self.CP.brand == "chrysler" and self.CP.flags & ChryslerFlags.PACIFICA_ALKA:
       # LKAS OFF also stops steering while ACC is active. Do not let the normal
       # engagement path override the physical switch or ALKA prerequisites.

@@ -61,6 +61,10 @@ def add_event(session: Session, event):
                        "button_events": [{"type": str(b.type), "pressed": b.pressed} for b in c.buttonEvents],
                        "can_valid": c.canValid, "temporary_fault": c.steerFaultTemporary,
                        "permanent_fault": c.steerFaultPermanent})
+  elif kind == "carStateExt":
+    s = event.carStateExt
+    session.add_state({"kind": kind, "mono_ns": int(event.logMonoTime), "valid": bool(event.valid),
+                       "host_lka_latched": s.legacyLkaLatched, "host_lka_latch_reason": s.legacyLkaLatchReason})
   elif kind == "selfdriveState":
     s = event.selfdriveState
     session.add_state({"kind": kind, "mono_ns": int(event.logMonoTime), "valid": bool(event.valid),
@@ -117,7 +121,7 @@ def read_logs(session: Session, paths: list[str]):
 def listen(session: Session, seconds: float):
   from cereal import messaging
   streams = ("can", "sendcan", "carState", "carControl", "pandaStates", "logMessage",
-             "selfdriveState", "onroadEvents")
+             "selfdriveState", "onroadEvents", "carStateExt")
   sockets = {name: messaging.sub_sock(name, timeout=0) for name in streams}
   end = time.monotonic() + seconds
   try:

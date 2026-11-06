@@ -269,6 +269,9 @@ class Car:
     cs_ext = messaging.new_message('carStateExt')
     cs_ext.valid = CS.canValid
     cs_ext.carStateExt.lkasOn = getattr(self.CI.CS, 'lkas_on', False)
+    legacy = getattr(self.CI.CC, 'legacy_lka', None) if self.CP.brand == 'ford' else None
+    cs_ext.carStateExt.legacyLkaLatched = bool(legacy is not None and legacy.latched)
+    cs_ext.carStateExt.legacyLkaLatchReason = legacy.latch_reason if legacy is not None else ''
     self.pm.send('carStateExt', cs_ext)
 
     if RD is not None:

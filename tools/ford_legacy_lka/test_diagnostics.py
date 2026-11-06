@@ -57,6 +57,8 @@ class TestEngagementDiagnostics(unittest.TestCase):
       # This single-frame alert must survive heartbeat sampling.
       session.add_state({"kind": "selfdriveState", "mono_ns": t,
                          "alert_type": "steerUnavailable/noEntry" if i == 55 else ""})
+      session.add_state({"kind": "carStateExt", "mono_ns": t,
+                         "host_lka_latched": False, "host_lka_latch_reason": ""})
     self.assertFalse(session.states_truncated)
     self.assertLess(len(session.states), 15000)
     self.assertTrue(any(r.get("alert_type") == "steerUnavailable/noEntry" for r in session.states))

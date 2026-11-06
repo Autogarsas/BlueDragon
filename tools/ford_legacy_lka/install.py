@@ -71,6 +71,20 @@ def main():
     run('git', 'switch', '--no-track', '-c', BRANCH, f'origin/{BRANCH}')
   run('git', 'branch', f'--set-upstream-to=origin/{BRANCH}', BRANCH)
   run(sys.executable, 'tools/ford_legacy_lka/verify_release.py')
+  # Exercise the updated wire schema and host-stop policy in a fresh process
+  # while ignition is off, before restarting any vehicle-control services.
+  run(sys.executable, '-c',
+      "from cereal import log; "
+      "from openpilot.selfdrive.selfdrived.events import EVENTS; "
+      "from openpilot.selfdrive.selfdrived.selfdrived import SelfdriveD; "
+      "from openpilot.selfdrive.controls.controlsd import Controls; "
+      "from openpilot.selfdrive.car.card import Car; "
+      "assert log.OnroadEvent.EventName.fordLegacyLkaLatched in EVENTS; "
+      "print('Native host-stop schema and service imports verified')")
+  run(sys.executable, '-m', 'unittest',
+      'tools.ford_legacy_lka.test_research',
+      'tools.ford_legacy_lka.test_diagnostics',
+      'tools.ford_legacy_lka.test_host_latch')
   # A fresh process must load the newly installed settings library, even if
   # earlier status imports cached the previous native module in this process.
   run(sys.executable, '-c',
