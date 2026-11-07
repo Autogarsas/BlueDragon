@@ -25,8 +25,11 @@ The pinned Panda's forced-allow changes are not imported.
    behavior (`kp=.01`, `ki=.005`, `kf=1/87`), including its original anti-windup.
 3. The normalized PID output is multiplied by `87`, exactly as in the donor.
 4. The donor DBC encodes that numeric reference with scale `0.05`, offset
-   `-102.4`, action `2`, and alert nibble `0xe`. Curvature comes from the donor's
-   vehicle-model calculation on the desired steering angle.
+   `-102.4` and action `2`. Curvature comes from the donor's vehicle-model
+   calculation on the desired steering angle. The live encoder explicitly
+   sets LDW request to `LDW_Idle` and intensity to `None`, producing first byte
+   `0x40`. The original `0xe` alert nibble is retained only in offline donor
+   fixtures, not in the live encoder.
 5. LKA packets are emitted at **100 Hz**. SCCM `0x76` supplies both published
    steering angle and controller/native-safety measurement. The unrelated
    ParkAid absolute-angle origin is not compared with SCCM's relative origin.
@@ -56,6 +59,11 @@ These differences from the historical fork are intentional and tested:
 - Unavailable/invalid/stale inputs produce the previously observed OEM neutral
   packet `0380080000000000`. The donor writes `0xf` into a three-bit action
   field, producing reserved action 7; that inactive encoding is not imported.
+- Active warning request/intensity fields must be zero in both host encoding
+  and native safety. The old `0x4e` packet is rejected. Steering payload bytes,
+  PID, action, rate, authority and torque cutoffs are unchanged. This targets a
+  specific encoding mismatch after a report of factory-style LDW vibration;
+  it does not establish the vibration's cause or prove its removal on a rack.
 - Native checks independently enforce actual cruise permission, pedal and
   torque override, SCCM freshness, EPS/status validity, rate, raw authority and
   tracking limits. LCA stays inactive and factory ACC retains gas/brake/resume.
@@ -73,13 +81,12 @@ the port, using the pinned DBC. Separate compiled C safety tests receive the
 host's encoded stream, including the recorded camera/SCCM offset scenario.
 Stock Ford, BluePilot, factory ACC and Pacifica regressions remain in CI.
 
-The paired package contains `DEV-f9077bf7-DEBUG`, signature prefix
-`58099a12bb5fe036`, from workflow run `42282707768`. The artifact ZIP digest,
-signed firmware digest, RSA signature, source checksums and existing ARM
-settings library are verified by the release checker. The H7 build source is
-pinned separately from subsequent host telemetry and packaging changes.
-The installer refuses an unpaired source revision. The existing settings
-library is unchanged; no new setting key is required.
+The warning-suppression candidate requires a new paired H7 artifact. Pending
+source revisions cannot be installed. The release manifest pins the artifact
+ZIP digest, signed firmware digest, RSA signature, native source checksums and
+existing ARM settings library. The installer leaves Legacy LKA disabled and
+does not automatically restore an experimental steering selection. The
+existing settings library is unchanged; no new setting key is required.
 
 The modern controller publishes the port's native PID telemetry through
 `pidState`, while retaining the Ford angle-control platform type. A wire-schema

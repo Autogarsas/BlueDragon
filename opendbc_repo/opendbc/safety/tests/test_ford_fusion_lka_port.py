@@ -31,17 +31,24 @@ class TestFordFusionLKAPortSafety(unittest.TestCase):
 
   def raw(self, action=2, reference=0, curvature=0, bus=0, extra=0):
     reference += 2048;curvature += 2048
-    data=bytes(((action<<5)|(14 if action else 3),curvature>>4,
+    data=bytes(((action<<5)|(0 if action else 3),curvature>>4,
                 ((curvature&15)<<4)|(reference>>8),reference&255,extra,0,0,0))
     return self.safety.safety_tx_hook(libsafety_py.make_CANPacket(0x3CA,bus,data))
 
   def test_reference_action_and_neutral_only(self):
     self.inputs()
-    for first in [0x23, 0x43, 0x83, 0x8e, 0xee, 0x5e, 0x4f]:
+    for first in [0x23, 0x43, 0x83, 0x8e, 0xee, 0x5e, 0x4e, 0x4f]:
       packet = bytes([first]) + bytes.fromhex('80080000000000')
       self.assertFalse(self.safety.safety_tx_hook(libsafety_py.make_CANPacket(0x3CA, 0, packet)), hex(first))
     self.assertTrue(self.tx())
     self.assertTrue(self.tx(action=0))
+
+  def test_every_nonzero_ldw_or_reserved_field_blocks_active(self):
+    self.inputs()
+    for lower in range(1, 32):
+      packet = bytes([0x40 | lower]) + bytes.fromhex('80080000000000')
+      self.assertFalse(self.safety.safety_tx_hook(libsafety_py.make_CANPacket(0x3CA, 0, packet)), lower)
+    self.assertTrue(self.tx())
 
   def test_camera_offset_does_not_compare_different_angle_origins(self):
     # Literal source values from the owner's rejected packet. The dedicated

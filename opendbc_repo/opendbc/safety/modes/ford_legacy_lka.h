@@ -62,9 +62,11 @@ static bool ford_lka_tx(const CANPacket_t *msg) {
   const int curvature = ((msg->data[1] << 4) | (msg->data[2] >> 4)) - 2048;
   const bool active = action != 0U;
   const uint32_t now = microsecond_timer_get();
-  // The reference DBC/encoder emits action 2 and lower nibble 0xe. Keep that
-  // exact active encoding in the distinct port mode; neutral remains 0x03.
-  const unsigned int lower = (ford_fusion_lka_port && active) ? 14U : 3U;
+  // The donor's 0xe alert nibble overlaps the LDW request and intensity fields.
+  // Port active commands must explicitly request LDW_Idle / intensity None.
+  // Reject all warning-bearing active packets, including the old 0x4e frame.
+  // The previously observed OEM inactive neutral remains 0x03.
+  const unsigned int lower = (ford_fusion_lka_port && active) ? 0U : 3U;
   bool violation = (msg->data[0] & 31U) != lower;
   violation |= (action != 0U) && (action != 2U) && (ford_fusion_lka_port || (action != 4U));
   violation |= (msg->data[4] != 0U) || (msg->data[5] != 0U) || (msg->data[6] != 0U) || (msg->data[7] != 0U);

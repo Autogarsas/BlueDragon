@@ -107,14 +107,20 @@ class TestFusionReferenceEquivalence(unittest.TestCase):
       actual = runtime_packer.make_can_msg('Lane_Keep_Assist_Control', 0, values)
       self.assertEqual(expected, actual, i)
 
-  def test_bounded_packets_match_upstream_and_inactive_deviation_is_explicit(self):
+  def test_live_packets_clear_warning_fields_and_preserve_donor_steering_payload(self):
     packer = CANPacker('ford_fusion_legacy_lka')
     for reference in range(-128, 129):
-      command = FusionLKACommand(2, reference, reference)
-      expected = packer.make_can_msg('Lane_Keep_Assist_Control', 0,
-                                    {'Lkas_Action': 2, 'Lkas_Alert': 14,
-                                     'Lane_Curvature': reference * .000005, 'Steer_Angle_Req': reference * .05})
-      self.assertEqual(expected, create_command(packer, 0, command))
+      for curvature in (-300, -17, 0, 17, 300):
+        command = FusionLKACommand(2, reference, curvature)
+        donor = packer.make_can_msg('Lane_Keep_Assist_Control', 0,
+                                   {'Lkas_Action': 2, 'Lkas_Alert': 14,
+                                    'Lane_Curvature': curvature * .000005, 'Steer_Angle_Req': reference * .05})
+        actual = create_command(packer, 0, command)
+        self.assertEqual(0x40, actual[1][0])
+        self.assertEqual(0, (actual[1][0] >> 2) & 7)  # LDW_Idle
+        self.assertEqual(0, actual[1][0] & 3)  # intensity None
+        self.assertEqual(donor[1][1:], actual[1][1:])
+        self.assertEqual((donor[0], donor[2]), (actual[0], actual[2]))
     self.assertEqual('0380080000000000', create_command(packer, 0, FusionLKACommand())[1].hex())
     # The upstream 0xf does not fit its own 3-bit action field: it becomes 7.
     original_inactive = packer.make_can_msg('Lane_Keep_Assist_Control', 0, {'Lkas_Action': 15, 'Lkas_Alert': 14})
@@ -176,7 +182,7 @@ class TestFusionPortHost(unittest.TestCase):
         counts[address] = counts.get(address, 0) + 1
         self.assertNotIn(address, (0x186, 0x3D6))
         if address == 0x3D3:self.assertEqual(0, (data[4] >> 2) & 7)
-        if address == 0x3CA:self.assertEqual(0x4e, data[0])
+        if address == 0x3CA:self.assertEqual(0x40, data[0])
       self.assertEqual(0, output.accel)
     self.assertEqual(1000, counts[0x3CA])
 

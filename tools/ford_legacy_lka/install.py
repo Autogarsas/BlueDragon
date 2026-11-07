@@ -87,11 +87,11 @@ def main():
       'tools.ford_legacy_lka.test_host_latch',
       'opendbc.car.ford.tests.test_fusion_lka_port',
       'opendbc.safety.tests.test_ford_fusion_lka_port')
-  # A fresh process must load the newly installed settings library, even if
-  # earlier status imports cached the previous native module in this process.
+  # The vibration correction is not vehicle-validated. Installation must not
+  # automatically re-enable the experimental steering path.
   run(sys.executable, '-c',
-      "from openpilot.common.params import Params; Params().put_bool('dp_ford_legacy_lka', True, block=True)")
-  print('Matched package verified. Legacy LKA selected; rebooting to apply.', flush=True)
+      "from openpilot.common.params import Params; Params().put_bool('dp_ford_legacy_lka', False, block=True)")
+  print('Matched candidate verified. Legacy LKA remains disabled; rebooting to apply.', flush=True)
   run('sudo', 'reboot')
 
 

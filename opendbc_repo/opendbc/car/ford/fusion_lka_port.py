@@ -1,6 +1,9 @@
 """Pinned Fusion LKA command path with a separate, bounded safety envelope.
 
-Active encoding and PID normalization follow JDGarlock/openpilot 5b5f7516.
+Steering encoding and PID normalization follow JDGarlock/openpilot 5b5f7516.
+The live encoder explicitly disables LDW requests and intensity after the
+reported factory-style warning vibration; the donor's overlapping alert
+nibble is retained only in the offline reference helper.
 The upstream DBC calls the reference mrad; its controller feeds a normalized
 PID output multiplied by 87. These numerical semantics are preserved, rather
 than reinterpreting the reference as a new steering-wheel angle controller.
@@ -56,7 +59,9 @@ def create_command(packer, bus, command):
       abs(command.curvature_raw) > MAX_CURVATURE_RAW):
     raise ValueError('Fusion LKA command outside the paired test envelope')
   return packer.make_can_msg('Lane_Keep_Assist_Control', bus,
-                            {'Lkas_Action': 2, 'Lkas_Alert': 0xe,
+                            {'Lkas_Action': 2,
+                             'LdwActvStats_D_Req': 0, 'LdwActvIntns_D_Req': 0,
+                             'LkaDrvOvrrd_D_Rq': 0, 'LaRampType_B_Req': 0,
                              'Lane_Curvature': command.curvature_raw * .000005,
                              'Steer_Angle_Req': command.reference_raw * .05})
 
