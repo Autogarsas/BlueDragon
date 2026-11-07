@@ -88,6 +88,13 @@ existing ARM settings library. The installer leaves Legacy LKA disabled and
 does not automatically restore an experimental steering selection. The
 existing settings library is unchanged; no new setting key is required.
 
+The paired warning-suppression candidate contains `DEV-c785bdc5-DEBUG`,
+signature prefix `5de6e8a8352bce37`, from source commit
+`c785bdc5f93e77b870d6d91a57fb67d874dea6b0`, workflow run `42381862110`, artifact
+`13577288390`. CI ran 578 tests: 534 passed, with 44 inherited skips. Vehicle
+validation remains pending; package pairing is not a claim that the reported
+vibration has been removed.
+
 The modern controller publishes the port's native PID telemetry through
 `pidState`, while retaining the Ford angle-control platform type. A wire-schema
 regression checks both that path and the existing stock angle telemetry.

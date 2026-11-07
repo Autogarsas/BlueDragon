@@ -2,8 +2,8 @@
   "version": "2.1-ldw-suppression-candidate",
   "channel": "ford-fusion-lka-port",
   "base_commit": "a78a1d5462919e71c03bf24134dff9ba93b982bc",
-  "build_source_commit": null,
-  "build_workflow_run": null,
+  "build_source_commit": "c785bdc5f93e77b870d6d91a57fb67d874dea6b0",
+  "build_workflow_run": 42381862110,
   "h7_manifest": "tools/ford_legacy_lka/firmware/h7-build.json",
   "params_sha256": "cf01554fc9ec5a37533b08df0701974978defc19c2d13aa7975219e575f0827c",
   "params_bytes": 1341664,
@@ -52,7 +52,7 @@
     "opendbc_repo/opendbc/dbc/ford_fusion_legacy_lka.dbc": "943219edd4308ce5dc9517117dfa2338a122089d759070686ac31495ec117aed",
     "opendbc_repo/opendbc/safety/tests/test_ford_fusion_lka_port.py": "65592e41d712817c08cd104df102b5dcaece29611f816c0a07466b126240f902",
     "selfdrive/controls/lib/latcontrol_ford_fusion_lka.py": "480d8fd6631edb08822b5732e7d88361d15c039943185327b737c3ac2ff9407f",
-    "tools/ford_legacy_lka/FUSION_PORT.md": "8a809bdd663639abfc57159b1a3e73ef9bc15323e25c0f95dcd5a3bdf2afe732",
+    "tools/ford_legacy_lka/FUSION_PORT.md": "afafdee4d0187e10237a859729e8f72339c165b8bbd8803a1d68bcdbe8856dce",
     "tools/ford_legacy_lka/reference/jdgarlock/carcontroller.py": "83a8ecc257bb825725febe05131403026e55411e9522e3842e76389855a63ed2",
     "tools/ford_legacy_lka/reference/jdgarlock/carstate.py": "d75f70a5e8c63265ff34e886f1b73a4c059b0fec62ca9277962363dc42b072d0",
     "tools/ford_legacy_lka/reference/jdgarlock/ford_lincoln_base_pt.dbc": "943219edd4308ce5dc9517117dfa2338a122089d759070686ac31495ec117aed",
@@ -62,8 +62,8 @@
     "tools/ford_legacy_lka/reference/jdgarlock/pid.py": "4ce1cd8aa90112b922a3a5385ea935984ec8f9e6c8c4b06634cc86ba02c9114a",
     "tools/ford_legacy_lka/reference/jdgarlock/provenance.json": "a25d0c001818d93b95fefd3e892da3b6101cd7eb61056aba99b7081192508793",
     "tools/ford_legacy_lka/reference/jdgarlock/values.py": "29600431507273a63597d1d219c9ce114ac4eb989354df5796aab855874313fb",
-    "tools/ford_legacy_lka/firmware/h7-build.json": "c6c6a917da481ebd880db570eaa18635e9426e46ad0f83a98a56f2779aa98164",
-    "panda/board/obj/version": "912545054361d73f674dedcb50676c4a1db6ac8df8f3c81985959de278d654ff"
+    "tools/ford_legacy_lka/firmware/h7-build.json": "95a5f320a2b2665933083c33ff7666ca127fa975ea2a6484fa69464ac382f427",
+    "panda/board/obj/version": "4c5c79e35d6eb08f2a8a447a51f5757061ea19c0716dc408c51f18dcdd5fa249"
   },
   "validation": {
     "tests_run": 578,
@@ -95,10 +95,10 @@
   "max_reference_step_raw": 1,
   "max_curvature_step_raw": 1,
   "interruption_policy": "latch until actual disengagement; no periodic resets or automatic rearm",
-  "h7_build_artifact": null,
+  "h7_build_artifact": 13577288390,
   "first_reference_tolerance_raw": 12,
   "first_curvature_tolerance_raw": 8,
-  "package_status": "native-build-pending",
+  "package_status": "paired-development",
   "reference_openpilot_commit": "5b5f7516d813ec08c887183f9707ecd180306292",
   "reference_dbc_commit": "d3a6e5fbeac38ff0f9c418f202ee8f004de28d1d",
   "lka_frequency_hz": 100,
@@ -147,5 +147,7 @@
     "captured_steering_payload_fixtures": 79,
     "donor_steering_payload_fixtures": 1285,
     "native_nonzero_low_fields_rejected": 31
-  }
+  },
+  "candidate_status": "vehicle-validation-pending",
+  "artifact_zip_sha256": "53a8bf6fbc17a6fe6c375eaaad8119977d568775bbb3a40931032709614c9d3e"
 }
