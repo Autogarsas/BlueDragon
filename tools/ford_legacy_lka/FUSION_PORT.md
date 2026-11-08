@@ -153,3 +153,12 @@ edits are preserved by refusing them. Legacy LKA remains disabled after update.
 
 Vehicle verification of this update is pending. A recording cannot predict
 how the vehicle would respond after correcting a previously latched stop.
+
+## Zero-assistance correction to the investigation
+
+The user confirmed no actual steering assistance in the latest tests.
+Packet transmission and availability transitions do not establish steering.
+See [the zero-actuation continuation](FUSION_ZERO_ACTUATION.md) for the
+instruction-backed receive/contribution trace and its limits. The accompanying
+stock-TJA status correction does not claim to restore steering. Keep Legacy
+LKA OFF pending the command/prerequisite investigation.

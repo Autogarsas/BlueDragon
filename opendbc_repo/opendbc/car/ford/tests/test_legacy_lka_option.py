@@ -4,9 +4,9 @@ from pathlib import Path
 from types import SimpleNamespace as NS
 import unittest
 
-from opendbc.car import gen_empty_fingerprint, structs
+from opendbc.car import Bus, gen_empty_fingerprint, structs
 from opendbc.car.ford.carcontroller import CarController
-from opendbc.car.ford.fordcan import CanBus, create_legacy_lka_msg
+from opendbc.car.ford.fordcan import CanBus, create_legacy_lka_msg, create_acc_ui_msg
 from opendbc.car.ford.interface import CarInterface
 from opendbc.car.ford.legacy_lka import LegacyLKALateral, LKACommand, REFERENCE_SCALE
 from opendbc.car.ford.tests.test_factory_acc import car_state
@@ -52,6 +52,34 @@ class TestLegacyLKAOption(unittest.TestCase):
         self.assertTrue(cp.flags & FordFlags.FUSION_LKA_PORT)
         self.assertEqual([(structs.CarParams.SafetyModel.ford, 40)],
                          [(s.safetyModel, s.safetyParam) for s in cp.safetyConfigs])
+
+  def test_legacy_lka_preserves_all_stock_tja_codes_and_the_complete_acc_ui_packet(self):
+    cp = params(legacy=True, reference_port=True)
+    cs = state(cp)
+    packer = CANPacker(DBC[cp.carFingerprint][Bus.pt])
+    hud = structs.CarControl().hudControl
+    stock = cs.acc_tja_status_stock_values
+    stock.update(AccTGap_D_Dsply=4, AccFllwMde_B_Dsply=1, AccMsgTxt_D2_Rq=3,
+                 AccStopStat_D_Dsply=2, AccStopMde_B_Dsply=1,
+                 HaDsply_No_Cs=29, HaDsply_No_Cnt=7)
+    for raw_tja in range(8):
+      for enabled in (False, True):
+        for main_on in (False, True):
+          for stock_fcw in (0, 1):
+            stock.update(Tja_D_Stat=raw_tja, FcwVisblWarn_B_Rq=stock_fcw)
+            expected = packer.make_can_msg("ACCDATA_3", 0, stock)
+            actual = create_acc_ui_msg(packer, CanBus(cp), cp, main_on, enabled,
+                                      False, False, False, hud, stock)
+            self.assertEqual(expected, actual, (raw_tja, enabled, main_on, stock_fcw))
+
+    # The existing non-LKA display behavior is deliberately still exercised.
+    cp.flags &= ~int(FordFlags.LEGACY_LKA)
+    for raw_tja in range(8):
+      stock["Tja_D_Stat"] = raw_tja
+      expected = packer.make_can_msg("ACCDATA_3", 0, dict(stock, Tja_D_Stat=2))
+      actual = create_acc_ui_msg(packer, CanBus(cp), cp, True, True,
+                                False, False, False, hud, stock)
+      self.assertEqual(expected, actual, raw_tja)
 
   def test_unsupported_profiles_remain_passive(self):
     for candidate in CAR:

@@ -1,4 +1,5 @@
 from opendbc.car import CanBusBase, structs
+from opendbc.car.ford.values import FordFlags
 
 HUDControl = structs.CarControl.HUDControl
 
@@ -191,6 +192,11 @@ def create_acc_ui_msg(packer, CAN: CanBus, CP, main_on: bool, enabled: bool, fcw
       status = 1  # Standby
   else:
     status = 0    # Off
+
+  # Legacy LKA does not issue an active lane-centering request. Preserve the
+  # camera's TJA status independently of the host's LKA request state.
+  if CP.flags & FordFlags.LEGACY_LKA:
+    status = stock_values["Tja_D_Stat"]
 
   values = {s: stock_values[s] for s in [
     "HaDsply_No_Cs",
