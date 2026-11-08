@@ -4,6 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace as NS
 import unittest
 
+from opendbc.can import CANPacker
 from opendbc.car import Bus, gen_empty_fingerprint, structs
 from opendbc.car.ford.carcontroller import CarController
 from opendbc.car.ford.fordcan import CanBus, create_legacy_lka_msg, create_acc_ui_msg
