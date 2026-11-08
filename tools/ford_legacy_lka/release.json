@@ -67,11 +67,11 @@
     "tools/ford_legacy_lka/replay.py": "d57f024b328d946a062fb9baec2604bb0c4a2232828b49b20604b6a924bdb194",
     "tools/ford_legacy_lka/test_replay.py": "5b9164fc572db365e61822364c50a180c885e55ec4503d332dd7566f7af6d420",
     "tools/ford_legacy_lka/test_install.py": "7c685a62ad94682a700e2f9eee0cc4ab3e8967ec05fa4bfc9b9e31d34f862f6b",
-    "tools/ford_legacy_lka/FUSION_ZERO_ACTUATION.md": "b28f1948b6d309ced615558ff866e6268628b3f9e9c5973e079e1fe6aa7cbeac"
+    "tools/ford_legacy_lka/FUSION_ZERO_ACTUATION.md": "6771bbe59327f31a4d6471c2c6e0430bd00634a6ef37ebc23d54ddcca2aaf5a4"
   },
   "validation": {
-    "tests_run": 594,
-    "passed": 550,
+    "tests_run": 595,
+    "passed": 551,
     "skipped": 44,
     "pi_equivalence_updates": 10000,
     "latcontrol_equivalence_updates": 4000,
@@ -184,6 +184,21 @@
     "vehicle_response_verified": false,
     "zero_actuation_diagnosis_complete": false,
     "local_isolated_function_checks": 72,
-    "native_regressions": "pending CI"
+    "native_regressions": "passed",
+    "tests_run": 595,
+    "passed": 551,
+    "skipped": 44,
+    "validated_commit": "f7b7da54dbca3a5df5cc362e13d095f9efa4cbfd",
+    "workflow_run": 42496678579,
+    "installed_on_vehicle_verified": false
+  },
+  "zero_actuation_analysis": {
+    "recorded_active_packets_decoded": 2324,
+    "recorded_yaw_samples_target_window": 3044,
+    "conditional_model_snapshots": 6,
+    "full_vehicle_replay": false,
+    "first_failed_vehicle_condition_identified": false,
+    "physical_assistance_verified": false,
+    "legacy_lka_must_remain_off": true
   }
 }

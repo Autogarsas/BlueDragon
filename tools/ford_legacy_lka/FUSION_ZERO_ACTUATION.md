@@ -92,15 +92,68 @@ Steering requests, H7 source/binary, settings library, driver override,
 authority, slew, factory ACC ownership and interruption/rearm policy are
 unchanged.
 
-## Pending evidence and validation
+## Recorded-byte replay
 
-The November 8 recordings and original cloud patch are not available in this
-laptop checkout. Browser access is unavailable. The local factory recording
-is retained as protocol evidence; it cannot replace the latest zero-assistance
-capture. The installed Panda signature remains unverified.
+Browser access was enabled and the November 8 filtered capture and both raw
+route segments were downloaded and retained locally. The full archive hash is
+5daf376668ffa6805cfba1983aae1c6ee86656242606dbfed5389e9304f997d7.
+The filtered capture hash is
+63e8aa1c699baa08ddb07ce445cf060de05dffc243ec3bd43476b698cf096d48.
+Private recordings are not included in this repository.
 
-The local instruction model is not a complete ECU, vehicle or motor model.
-Native integration and safety regressions run in the existing Linux CI,
-since this laptop lacks that native test environment. Results must be
-reported from the actual workflow run before claiming they passed.
-No new vehicle installation or moving test is recommended from this change.
+All 2,324 active 0x3CA packets in the filtered capture exactly match the full
+raw send stream. The original 65412 callback and D26EE adapter decode their
+actual payloads into the expected action, reference and curvature. These
+checks use declared synthetic valid/fresh receive flags and nested-lock state;
+they do not reproduce the physical CAN peripheral or prove ECU receipt.
+
+The PSCM's yaw input is 0x77 BrakeSnData_3, not the host's 0x91 yaw field.
+Receive object 25 points to FEDF2ABC. Getter 6AA2A, callback 64A4C, range getter
+D02E6 and adapter D26B6..D26EE lead to GP-B658. The decoded twelve-bit input is:
+
+    yaw_rad_s = (raw * 0.03663 - 75) * pi / 180
+
+The original callback is warmed using recorded prehistory from 282 seconds
+after boot; payload/scaling assertions cover the 302..363 second target window.
+That window contains 3,044 valid raw yaw samples. It therefore does not show
+a simply absent yaw prerequisite. Comparing this input with the latest 0x91
+sample is descriptive only; it does not establish which difference, if any,
+caused zero assistance. EPS status in the capture remains normal with no
+reported EPAS failure; that status is not a steering-execution acknowledgement.
+
+Six independent recorded packet/speed/yaw snapshots were held for forty model
+updates each, using recorded configuration parameter 2847 and the complete
+D21EE wrapper, D279E export, 57F54 submission and D2446..D245A feedback path.
+With synthetic readiness and other unmeasured internal state, submitted
+commands were 18, -7, 27, -4, 0 and -21 Q10 counts; all had feedback 3.
+This is a conditional instruction-model result, not a time-aligned full-ECU
+or actuator replay. It does not justify changing physical units, authority,
+action direction, timer behavior or native safety limits.
+
+The two long episodes end in measured availability drops about 7.055 and
+7.044 seconds after continuing requests. The user felt no steering throughout.
+These are status transitions, not proven steering-duration limits.
+
+## Validation and remaining gap
+
+Commit f7b7da54dbca3a5df5cc362e13d095f9efa4cbfd passed workflow
+[42496678579](https://github.com/Autogarsas/BlueDragon/actions/runs/42496678579):
+595 tests run, 551 passed and 44 inherited skips. The run also verified the
+reused signed H7 package and the 170-key ARM settings library. The package is
+unchanged; the connected Panda signature remains independently unverified.
+The TJA correction is published on the experimental branch, not confirmed
+installed on the device. Its effect on PSCM arbitration is unproven.
+
+The first failed or ineffective actuation condition in the vehicle is still
+unidentified. Remaining candidates require evidence of live eligibility,
+post-submission suppression, downstream aggregation and the actual actuator
+reference. GP-7B48 bit 1 is one demonstrated software gate, not an observed
+vehicle failure. Neutral 0x3D3 coexistence in the model and the absence of
+direct 0x3D8/0x18A receive mappings do not close whole-vehicle arbitration.
+
+Continue tracing the downstream gate writers and actuator aggregation against
+existing firmware before proposing any actuation change. Establish observable
+read-only diagnostics for the missing state where possible. No additional
+moving test or installation is recommended by these findings. Keep Legacy LKA
+OFF. Factory ACC, driver override, native checks, limits and rearm rules stay
+as published; no modified PSCM VBF is produced.
