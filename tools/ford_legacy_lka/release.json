@@ -1,5 +1,5 @@
 {
-  "version": "2.3-stock-tja-status",
+  "version": "2.4-passive-pscm-chain",
   "channel": "ford-fusion-lka-port",
   "base_commit": "a78a1d5462919e71c03bf24134dff9ba93b982bc",
   "build_source_commit": "c785bdc5f93e77b870d6d91a57fb67d874dea6b0",
@@ -29,8 +29,8 @@
     "opendbc_repo/opendbc/car/ford/carstate.py": "646723ed7716bd347b406fe915357ec94ea144cab69a3cd2f3f897a6a100b5e7",
     "opendbc_repo/opendbc/car/ford/fordcan.py": "d5d4eeee504901b3977e0f29e32d5c9cad0d5517384202be0f4e1e514568bd1f",
     "opendbc_repo/opendbc/car/ford/legacy_lka.py": "0dea9c92c6c24ac287a66db3d04d6203051da64dba69c53b3547be5c263a7bf9",
-    "tools/ford_legacy_lka/capture.py": "4d5e08a00c445dbe51177c1e0d0be2007975c88025aed3efce0f3b88960ed4ac",
-    "tools/ford_legacy_lka/protocol.py": "d07fbfea4ae117c74cdf8e48a15dd9470aa73b7754f0292df0d39f48f89af5c0",
+    "tools/ford_legacy_lka/capture.py": "5b19ea312795706fb6fb854fdec8920c18b991821ea0b1f4c3e7ea186c3bb0a6",
+    "tools/ford_legacy_lka/protocol.py": "3fd1c9393d9a1302ae102ffd762da397d3ae22430fdd800e93661b3fae79d57b",
     "tools/ford_legacy_lka/check_option.py": "d809ae44e6c449531d722f42e76d66a67709767bbcbe85cf7ade0f7302268d86",
     "tools/ford_legacy_lka/verify_release.py": "a19420058ab4ea9c36f86f47301b5b1aa525e83b1cbd61a4f35dfa673740e1b5",
     "tools/ford_legacy_lka/install.py": "9741ca93f4f0743f739c2962fe2af5c8432505eb3c6f6909b767c560ad7932bb",
@@ -67,7 +67,9 @@
     "tools/ford_legacy_lka/replay.py": "d57f024b328d946a062fb9baec2604bb0c4a2232828b49b20604b6a924bdb194",
     "tools/ford_legacy_lka/test_replay.py": "5b9164fc572db365e61822364c50a180c885e55ec4503d332dd7566f7af6d420",
     "tools/ford_legacy_lka/test_install.py": "7c685a62ad94682a700e2f9eee0cc4ab3e8967ec05fa4bfc9b9e31d34f862f6b",
-    "tools/ford_legacy_lka/FUSION_ZERO_ACTUATION.md": "6771bbe59327f31a4d6471c2c6e0430bd00634a6ef37ebc23d54ddcca2aaf5a4"
+    "tools/ford_legacy_lka/FUSION_ZERO_ACTUATION.md": "c0791f0e5460a2c6d495c43319cff94a3b78d4a838bb16fb85fcbc92f75e6f39",
+    "tools/ford_legacy_lka/test_research.py": "0ffcff02f48bf22287030b2129500c3801f36f4039cacbeb8f38489f6a2fdc55",
+    "tools/ford_legacy_lka/PSCM_COMMAND_CHAIN.md": "ba070a080b56b5feddffe02b08106434f14983e9c51fc1442081941977807dbf"
   },
   "validation": {
     "tests_run": 595,
@@ -200,5 +202,20 @@
     "first_failed_vehicle_condition_identified": false,
     "physical_assistance_verified": false,
     "legacy_lka_must_remain_off": true
+  },
+  "passive_chain_diagnostics": {
+    "compensated_yaw_77_retained": true,
+    "ipma_companions_and_diagnostic_frames_retained": true,
+    "diagnostic_requests_sent": false,
+    "steering_or_native_safety_changed": false,
+    "h7_package_changed": false,
+    "ee42_is_submission_mode_not_acceptance": true,
+    "focused_local_checks_passed": 11,
+    "private_raw_replay_frames": 139134,
+    "active_packets_preserved": 2324,
+    "raw_native_input_coverage_complete": true,
+    "microcontroller_ordering_verified": false,
+    "physical_assistance_verified": false,
+    "native_regression_requirement": "Full existing Linux workflow for this commit; previous 595-test result is historical."
   }
 }

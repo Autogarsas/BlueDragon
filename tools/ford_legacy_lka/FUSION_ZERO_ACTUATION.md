@@ -157,3 +157,11 @@ read-only diagnostics for the missing state where possible. No additional
 moving test or installation is recommended by these findings. Keep Legacy LKA
 OFF. Factory ACC, driver override, native checks, limits and rearm rules stay
 as published; no modified PSCM VBF is produced.
+
+## Further chain continuation
+
+See [PSCM_COMMAND_CHAIN.md](PSCM_COMMAND_CHAIN.md) for the assistance-curve
+initialization correction, original angle-math equivalence, header comparison,
+actual recorded DTC response and read-only observability. EE42 reports submitted
+mode, not acceptance. Physical steering and the first ineffective vehicle
+condition remain unresolved.

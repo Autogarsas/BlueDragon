@@ -14,8 +14,8 @@ VEHICLES = {
 
 # Include both candidate steering/speed sources. An address alone cannot identify
 # the layout: 0x76 has a different meaning in the two DBCs, for example.
-WATCH_IDS = frozenset((0x76, 0x7E, 0x82, 0x83, 0x85, 0x8A, 0x91, 0x165, 0x202, 0x204,
-                       0x213, 0x217, 0x230, 0x246, 0x3A8, 0x3CA, 0x3CC, 0x3D3, 0x3D6, 0x415))
+WATCH_IDS = frozenset((0x76, 0x77, 0x7E, 0x82, 0x83, 0x85, 0x8A, 0x91, 0x165, 0x202, 0x204,
+                       0x18A, 0x213, 0x217, 0x230, 0x246, 0x3A8, 0x3CA, 0x3CC, 0x3D3, 0x3D6, 0x3D7, 0x3D8, 0x415, 0x730, 0x738))
 
 # Exact required RX IDs for Ford safety parameter 40. Presence is only a
 # completeness check; full native replay also needs valid timing/counters.
@@ -57,6 +57,78 @@ def decode_status(data: bytes) -> dict:
           "denied": bool(data[0] & 0x40), "hands_off": bool(data[0] & 0x80)}
 
 
+# These response encodings were traced in K2GC-14D003-AH / K2GC-14D007-CD.
+# They are conditional views, not vehicle identification or actuation evidence.
+PSCM_K2GC_READ_SIZES = {0x3302: 2, 0x3020: 2, 0xEE02: 1, 0xEE42: 2, 0xEE43: 1}
+
+
+def decode_pscm_read_response(payload: bytes) -> dict:
+  """Decode an allowlisted positive UDS read response; perform no transport."""
+  payload = bytes(payload)
+  if len(payload) < 3 or payload[0] != 0x62:
+    raise ValueError("A positive ReadDataByIdentifier response is required")
+  did = int.from_bytes(payload[1:3], "big")
+  if did not in PSCM_K2GC_READ_SIZES:
+    raise ValueError("DID has no verified K2GC response mapping")
+  data = payload[3:]
+  if len(data) != PSCM_K2GC_READ_SIZES[did]:
+    raise ValueError("Read response length does not match the original encoder")
+  raw = int.from_bytes(data, "big")
+  result = {"did": f"0x{did:04x}", "data": data.hex(),
+            "mapping_strategy": "K2GC-14D003-AH",
+            "mapping_calibration": "K2GC-14D007-CD",
+            "conditional_on_matching_firmware": True,
+            "physical_assistance_proven": False}
+  if did in (0x3302, 0x3020):
+    result["available"] = raw != 0xffff
+    if result["available"]:
+      # 568A2/568F4 add 7800 to GP-78AA; D0144/D24EA convert it to /10.
+      result["internal_angle_raw"] = raw - 7800
+      result["internal_angle_deg"] = (raw - 7800) / 10.
+  elif did == 0xEE42:
+    # 5A148 stores r20 (the submitted MODE), not the returned acceptance code.
+    result["request_mode_mask"] = raw
+    result["lka_channel0_last_submitted_mode3"] = bool(raw & 0x10)
+    result["manager_acceptance_proven"] = False
+  elif did == 0xEE02:
+    orientation = raw if raw < 128 else raw - 256
+    result["core_orientation"] = orientation
+    result["orientation_is_plus_or_minus_one"] = orientation in (-1, 1)
+  else:
+    result["assist_curve_selector"] = raw
+  return result
+
+
+def decode_pscm_read_single_frame(data: bytes) -> dict | None:
+  """Inspect a complete classic ISO-TP single frame; never send flow control."""
+  data = bytes(data)
+  if not 1 <= len(data) <= 8 or data[0] >> 4:
+    return None
+  size = data[0] & 15
+  if size < 3 or size > 7 or size + 1 > len(data):
+    return None
+  payload = data[1:size + 1]
+  if payload[0] != 0x62 or int.from_bytes(payload[1:3], "big") not in PSCM_K2GC_READ_SIZES:
+    return None
+  return decode_pscm_read_response(payload)
+
+
+def decode_pscm_dtc_response(payload: bytes) -> dict:
+  """Decode a complete positive 0x19/0x02 response without clearing faults."""
+  payload = bytes(payload)
+  if len(payload) < 3 or payload[:2] != b"\x59\x02" or (len(payload) - 3) % 4:
+    raise ValueError("A complete reportDTCByStatusMask response is required")
+  records = []
+  for offset in range(3, len(payload), 4):
+    first, second, failure, status = payload[offset:offset + 4]
+    word = (first << 8) | second
+    code = f'{"PCBU"[word >> 14]}{(word >> 12) & 3}{word & 0xfff:03X}:{failure:02X}'
+    records.append({"code": code, "status": status, "test_failed": bool(status & 1),
+                    "failed_this_operation_cycle": bool(status & 2), "confirmed": bool(status & 8)})
+  return {"status_availability_mask": payload[2], "records": records,
+          "snapshot_proves_current_actuation_failure": False}
+
+
 def preview_lka(layout: str, reference_raw: int = 2048, curvature_raw: int | None = None,
                 direction: str = "off") -> bytes:
   """Make a small offline fixture, never a live steering command.
@@ -95,8 +167,45 @@ class Session:
     self.states_truncated = False
     self.counts = Counter()
     self.truncated = False
+    self._pscm_response_fragments = {}
     self._last_snapshots = {}
     self._last_snapshot_times = {}
+
+  def _pscm_response_payload(self, bus: int, data: bytes, mono_ns: int) -> bytes | None:
+    """Bounded passive reassembly; no flow-control or diagnostic requests."""
+    pending = self._pscm_response_fragments
+    if not 1 <= len(data) <= 8:
+      pending.pop(bus, None)
+      return None
+    kind = data[0] >> 4
+    if kind == 0:
+      pending.pop(bus, None)
+      size = data[0] & 15
+      return data[1:size + 1] if 3 <= size <= 7 and size + 1 <= len(data) else None
+    if kind == 1:
+      pending.pop(bus, None)
+      if len(data) != 8:
+        return None
+      size = ((data[0] & 15) << 8) | data[1]
+      # Reassemble only DTC reads, avoiding unrelated multi-frame identity data.
+      if 7 < size <= 1024 and data[2:4] == b"\x59\x02":
+        pending[bus] = {"size": size, "data": data[2:], "sequence": 1, "time": mono_ns}
+      return None
+    if kind == 2:
+      current = pending.pop(bus, None)
+      if current is None or not 0 <= mono_ns - current["time"] <= 200000000:
+        return None
+      if data[0] & 15 != current["sequence"] or len(data) < 2:
+        return None
+      current["data"] += data[1:]
+      if len(current["data"]) >= current["size"]:
+        return current["data"][:current["size"]]
+      current["sequence"] = (current["sequence"] + 1) & 15
+      current["time"] = mono_ns
+      pending[bus] = current
+    else:
+      pending.pop(bus, None)
+    return None
 
   def add_frame(self, stream: str, bus: int, address: int, data: bytes, mono_ns: int, valid: bool = True):
     if (stream not in ("can", "sendcan") or type(bus) is not int or bus < 0 or
@@ -116,6 +225,15 @@ class Session:
         row["dbc_views"] = decode_lka(data)
       elif address == 0x3CC:
         row["status_view"] = decode_status(data)
+      elif address == 0x738 and stream == "can" and bus == 0 and self.vehicle == "fusion_2019":
+        if not valid:
+          self._pscm_response_fragments.pop(bus, None)
+        payload = self._pscm_response_payload(bus, data, mono_ns) if valid else None
+        if payload is not None and payload[:2] == b"\x59\x02":
+          row["pscm_dtc_view"] = decode_pscm_dtc_response(payload)
+        elif (payload is not None and len(payload) >= 3 and payload[0] == 0x62
+              and int.from_bytes(payload[1:3], "big") in PSCM_K2GC_READ_SIZES):
+          row["pscm_k2gc_read_view"] = decode_pscm_read_response(payload)
     except ValueError as ex:
       row["decode_error"] = str(ex)
     self.frames.append(row)

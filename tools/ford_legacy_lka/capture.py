@@ -48,6 +48,9 @@ def metadata(root: Path) -> dict:
                               "safety": [{"model": str(s.safetyModel), "param": s.safetyParam} for s in cp.safetyConfigs],
                               "ecu_identification": [{"ecu": str(f.ecu), "address": hex(f.address),
                                 "sub_address": f.subAddress, "version_hex": bytes(f.fwVersion).hex()} for f in cp.carFw]}
+      result["car_params"]["controller_geometry"] = {
+        "wheelbase_m": finite(cp.wheelbase), "steer_ratio": finite(cp.steerRatio),
+        "is_firmware_parameter_readback": False}
   except Exception as ex:
     result["car_params_error"] = f"{type(ex).__name__}: {ex}"
   return result

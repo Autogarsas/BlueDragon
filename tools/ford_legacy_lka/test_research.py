@@ -252,6 +252,101 @@ class TestFordLKAEvidence(unittest.TestCase):
     self.assertEqual("legacyLkaCommand", s.states[0]["kind"])
 
 
+
+class TestOriginalPSCMReadEncoders(unittest.TestCase):
+  # Literal responses reproduced by the stock RH850 response handlers.
+  # These fixtures do not claim that a connected vehicle has this firmware.
+  def test_angle_response_golden_vectors(self):
+    for did in ("3302", "3020"):
+      for data, expected in (("1e14", -10.), ("1e78", 0.), ("1edc", 10.)):
+        view = protocol.decode_pscm_read_response(bytes.fromhex("62" + did + data))
+        self.assertEqual(expected, view["internal_angle_deg"])
+        self.assertTrue(view["conditional_on_matching_firmware"])
+        self.assertFalse(view["physical_assistance_proven"])
+
+  def test_unavailable_angle_is_never_a_zero_angle(self):
+    for did in ("3302", "3020"):
+      view = protocol.decode_pscm_read_response(bytes.fromhex("62" + did + "ffff"))
+      self.assertFalse(view["available"])
+      self.assertNotIn("internal_angle_deg", view)
+
+  def test_request_mask_is_not_manager_acceptance(self):
+    for data, requested in (("0010", True), ("0000", False), ("0001", False)):
+      view = protocol.decode_pscm_read_response(bytes.fromhex("62ee42" + data))
+      self.assertEqual(requested, view["lka_channel0_last_submitted_mode3"])
+      self.assertFalse(view["manager_acceptance_proven"])
+      self.assertFalse(view["physical_assistance_proven"])
+
+  def test_orientation_and_assist_selector_golden_vectors(self):
+    for data, orientation in (("ff", -1), ("01", 1), ("00", 0)):
+      view = protocol.decode_pscm_read_response(bytes.fromhex("62ee02" + data))
+      self.assertEqual(orientation, view["core_orientation"])
+      self.assertEqual(orientation != 0, view["orientation_is_plus_or_minus_one"])
+    self.assertEqual(7, protocol.decode_pscm_read_response(bytes.fromhex("62ee4307"))["assist_curve_selector"])
+
+  def test_complete_single_frame_and_unsupported_traffic(self):
+    view = protocol.decode_pscm_read_single_frame(bytes.fromhex("0562ee4200100000"))
+    self.assertTrue(view["lka_channel0_last_submitted_mode3"])
+    for data in ("", "100a62ee42001000", "3000000000000000", "037f223100000000",
+                 "0562ee4200", "0462f18801000000"):
+      self.assertIsNone(protocol.decode_pscm_read_single_frame(bytes.fromhex(data)))
+    for payload in ("62ee4200", "62ee42001000", "62ee0100", "7f2231"):
+      with self.assertRaises(ValueError):
+        protocol.decode_pscm_read_response(bytes.fromhex(payload))
+
+  def test_capture_retains_missing_chain_inputs_and_companions(self):
+    session = Session("fusion_2019", "baseline")
+    for address in (0x77, 0x730, 0x18A, 0x3D8):
+      session.add_frame("can", 0, address, bytes(8), 1, True)
+    session.add_frame("can", 0, 0x738, bytes.fromhex("0562ee4200100000"), 2, True)
+    report = session.report()
+    self.assertEqual(5, len(report["frames"]))
+    self.assertFalse(report["capture_sends_can"])
+    self.assertFalse(report["eps_acceptance_proven"])
+    self.assertTrue(report["frames"][-1]["pscm_k2gc_read_view"]["lka_channel0_last_submitted_mode3"])
+
+  def test_recorded_pscm_dtc_response_preserves_current_vs_stored_status(self):
+    # Full raw route response at boot time 312.475..312.495 seconds.
+    view = protocol.decode_pscm_dtc_response(bytes.fromhex("5902cbc0018808c23a000a"))
+    self.assertEqual(0xcb, view["status_availability_mask"])
+    self.assertEqual(["U0001:88", "U023A:00"], [r["code"] for r in view["records"]])
+    self.assertEqual([False, False], [r["test_failed"] for r in view["records"]])
+    self.assertEqual([False, True], [r["failed_this_operation_cycle"] for r in view["records"]])
+    self.assertTrue(all(r["confirmed"] for r in view["records"]))
+    self.assertFalse(view["snapshot_proves_current_actuation_failure"])
+    for payload in ("5902cbc00188", "5901cb", "7f1931"):
+      with self.assertRaises(ValueError):
+        protocol.decode_pscm_dtc_response(bytes.fromhex(payload))
+
+  def test_recorded_multiframe_dtc_read_is_reassembled_without_transmission(self):
+    session = Session("fusion_2019", "baseline")
+    session.add_frame("can", 0, 0x738, bytes.fromhex("100b5902cbc00188"), 312475382791, True)
+    session.add_frame("can", 0, 0x738, bytes.fromhex("2108c23a000a0000"), 312495164580, True)
+    self.assertNotIn("pscm_dtc_view", session.frames[0])
+    self.assertEqual("U023A:00", session.frames[1]["pscm_dtc_view"]["records"][1]["code"])
+    self.assertFalse(session.report()["capture_sends_can"])
+
+  def test_dtc_fragments_must_match_bus_sequence_and_gap(self):
+    first = bytes.fromhex("100b5902cbc00188")
+    last = bytes.fromhex("2108c23a000a0000")
+    for bus, packet, when in ((2, last, 2), (0, bytes.fromhex("2208c23a000a0000"), 2),
+                              (0, last, 200000002)):
+      session = Session("fusion_2019", "baseline")
+      session.add_frame("can", 0, 0x738, first, 1, True)
+      session.add_frame("can", bus, 0x738, packet, when, True)
+      self.assertFalse(any("pscm_dtc_view" in row for row in session.frames))
+
+  def test_echoes_and_other_vehicle_labels_get_no_rack_read_view(self):
+    packet = bytes.fromhex("0562ee4200100000")
+    session = Session("fusion_2019", "baseline")
+    session.add_frame("sendcan", 0, 0x738, packet, 1, True)
+    session.add_frame("can", 128, 0x738, packet, 2, True)
+    other = Session("mkz_2016", "baseline")
+    other.add_frame("can", 0, 0x738, packet, 3, True)
+    for row in session.frames + other.frames:
+      self.assertNotIn("pscm_k2gc_read_view", row)
+
+
 if __name__ == "__main__":
   unittest.main()
 
