@@ -1,5 +1,5 @@
 {
-  "version": "2.1-ldw-suppression-candidate",
+  "version": "2.2-count-boundary-diagnostics",
   "channel": "ford-fusion-lka-port",
   "base_commit": "a78a1d5462919e71c03bf24134dff9ba93b982bc",
   "build_source_commit": "c785bdc5f93e77b870d6d91a57fb67d874dea6b0",
@@ -29,12 +29,12 @@
     "opendbc_repo/opendbc/car/ford/carstate.py": "646723ed7716bd347b406fe915357ec94ea144cab69a3cd2f3f897a6a100b5e7",
     "opendbc_repo/opendbc/car/ford/fordcan.py": "15d3048c5d26eb6fde3993e3af168678d16106c1f3e8af9c3d84b86b893f90c2",
     "opendbc_repo/opendbc/car/ford/legacy_lka.py": "0dea9c92c6c24ac287a66db3d04d6203051da64dba69c53b3547be5c263a7bf9",
-    "tools/ford_legacy_lka/capture.py": "a9af00578274abb3c4773f0d378f0d80c37e908ca1c1a73c76a4ee0dc87c6863",
-    "tools/ford_legacy_lka/protocol.py": "7e6af9cf13f4d4c44430dc744fd971e8a4971d42193ff773e00c022e57bb02da",
+    "tools/ford_legacy_lka/capture.py": "4d5e08a00c445dbe51177c1e0d0be2007975c88025aed3efce0f3b88960ed4ac",
+    "tools/ford_legacy_lka/protocol.py": "d07fbfea4ae117c74cdf8e48a15dd9470aa73b7754f0292df0d39f48f89af5c0",
     "tools/ford_legacy_lka/check_option.py": "d809ae44e6c449531d722f42e76d66a67709767bbcbe85cf7ade0f7302268d86",
     "tools/ford_legacy_lka/verify_release.py": "a19420058ab4ea9c36f86f47301b5b1aa525e83b1cbd61a4f35dfa673740e1b5",
-    "tools/ford_legacy_lka/install.py": "03106bd6d220dea127e2a4876a75e00c3c78b28e9e2864f768f22cf258ac630e",
-    "tools/ford_legacy_lka/check_firmware.py": "527fb6027945d563bd8f6b76ae0f3c551b54e7d7924bf3f2a7affed14daa6319",
+    "tools/ford_legacy_lka/install.py": "9741ca93f4f0743f739c2962fe2af5c8432505eb3c6f6909b767c560ad7932bb",
+    "tools/ford_legacy_lka/check_firmware.py": "13484ce18aa95d3aa14f36db0a9029942a49869815e110c1ceec7cb99642726e",
     "cereal/custom.capnp": "8ddadb25bea98308090ac294d524555e344c40360200fe10eebfaebe11f59d0d",
     "cereal/log.capnp": "7e2044bfb8c2fa896fed67fa97ded54bb3d46b61e6ff58aedbf0182c31d97beb",
     "selfdrive/car/ford_legacy_lka.py": "e4ca032f2326c48fb673f30d25551a3c73d6c976113e111152fa5c347c99a5dd",
@@ -47,12 +47,12 @@
     "selfdrive/locationd/paramsd.py": "7f34f267b09a41708ffec0680107b4d73231ea3c13628346378de2d3474a3b72",
     "tools/ford_legacy_lka/test_host_latch.py": "c61b52ebac6f345af96a83fd044ff2ce67c8389ca9317634da9de5db3d0ba55d",
     "opendbc_repo/opendbc/car/ford/fusion_lka_pid.py": "7b22949c0115697b5d397c850cf9b9f3f5653f5211815ace486300b777a05958",
-    "opendbc_repo/opendbc/car/ford/fusion_lka_port.py": "debc4ede28fb1a6e5375b1c9a31870178fefbaa78cfb2536cfb6655032420da5",
-    "opendbc_repo/opendbc/car/ford/tests/test_fusion_lka_port.py": "f47fec27b87316582d5109b1a10ed65289d9db063e4d9b2e79309bdbb6dfc00b",
+    "opendbc_repo/opendbc/car/ford/fusion_lka_port.py": "2a6c456de10dcf61b825cd8ac79c3de65d775fa6e042db1c6c21fc55b2701caa",
+    "opendbc_repo/opendbc/car/ford/tests/test_fusion_lka_port.py": "3d6b4b14d3ec27e4ae3ac888a322d2877be5bc7e3a261e41fd1ecb14f0d8d358",
     "opendbc_repo/opendbc/dbc/ford_fusion_legacy_lka.dbc": "943219edd4308ce5dc9517117dfa2338a122089d759070686ac31495ec117aed",
-    "opendbc_repo/opendbc/safety/tests/test_ford_fusion_lka_port.py": "65592e41d712817c08cd104df102b5dcaece29611f816c0a07466b126240f902",
+    "opendbc_repo/opendbc/safety/tests/test_ford_fusion_lka_port.py": "b393b8b607d3e1e058c3f4035e5b1607389f969f8b186e6fa5cc841632d86b85",
     "selfdrive/controls/lib/latcontrol_ford_fusion_lka.py": "480d8fd6631edb08822b5732e7d88361d15c039943185327b737c3ac2ff9407f",
-    "tools/ford_legacy_lka/FUSION_PORT.md": "afafdee4d0187e10237a859729e8f72339c165b8bbd8803a1d68bcdbe8856dce",
+    "tools/ford_legacy_lka/FUSION_PORT.md": "72bd779c9e5500abfaad033fa86e9ba64b1963e2d363c59e040a703697e07b17",
     "tools/ford_legacy_lka/reference/jdgarlock/carcontroller.py": "83a8ecc257bb825725febe05131403026e55411e9522e3842e76389855a63ed2",
     "tools/ford_legacy_lka/reference/jdgarlock/carstate.py": "d75f70a5e8c63265ff34e886f1b73a4c059b0fec62ca9277962363dc42b072d0",
     "tools/ford_legacy_lka/reference/jdgarlock/ford_lincoln_base_pt.dbc": "943219edd4308ce5dc9517117dfa2338a122089d759070686ac31495ec117aed",
@@ -63,11 +63,14 @@
     "tools/ford_legacy_lka/reference/jdgarlock/provenance.json": "a25d0c001818d93b95fefd3e892da3b6101cd7eb61056aba99b7081192508793",
     "tools/ford_legacy_lka/reference/jdgarlock/values.py": "29600431507273a63597d1d219c9ce114ac4eb989354df5796aab855874313fb",
     "tools/ford_legacy_lka/firmware/h7-build.json": "95a5f320a2b2665933083c33ff7666ca127fa975ea2a6484fa69464ac382f427",
-    "panda/board/obj/version": "4c5c79e35d6eb08f2a8a447a51f5757061ea19c0716dc408c51f18dcdd5fa249"
+    "panda/board/obj/version": "4c5c79e35d6eb08f2a8a447a51f5757061ea19c0716dc408c51f18dcdd5fa249",
+    "tools/ford_legacy_lka/replay.py": "d57f024b328d946a062fb9baec2604bb0c4a2232828b49b20604b6a924bdb194",
+    "tools/ford_legacy_lka/test_replay.py": "5b9164fc572db365e61822364c50a180c885e55ec4503d332dd7566f7af6d420",
+    "tools/ford_legacy_lka/test_install.py": "7c685a62ad94682a700e2f9eee0cc4ab3e8967ec05fa4bfc9b9e31d34f862f6b"
   },
   "validation": {
-    "tests_run": 578,
-    "passed": 534,
+    "tests_run": 594,
+    "passed": 550,
     "skipped": 44,
     "pi_equivalence_updates": 10000,
     "latcontrol_equivalence_updates": 4000,
@@ -149,5 +152,27 @@
     "native_nonzero_low_fields_rejected": 31
   },
   "candidate_status": "vehicle-validation-pending",
-  "artifact_zip_sha256": "53a8bf6fbc17a6fe6c375eaaad8119977d568775bbb3a40931032709614c9d3e"
+  "artifact_zip_sha256": "53a8bf6fbc17a6fe6c375eaaad8119977d568775bbb3a40931032709614c9d3e",
+  "host_base_commit": "860e14ad65fbb93dafb0272d2e98b806646355a6",
+  "firmware_reused_unchanged": true,
+  "host_update_validation": {
+    "native_firmware_changed": false,
+    "driver_override_limit_changed": false,
+    "curvature_authority_changed": false,
+    "numeric_tracking_limit_raw": 38,
+    "reference_step_raw": 1,
+    "ignition_off_required": false,
+    "park_and_no_output_required": true,
+    "recorded_first_tracking_stop_retained": true,
+    "recorded_second_tracking_stop_float_boundary_corrected": true,
+    "exact_native_rejection_replay_possible_from_original_capture": false,
+    "original_capture_missing_native_rx": [
+      "0x213"
+    ],
+    "vehicle_validated": false,
+    "tests_run": 594,
+    "passed": 550,
+    "skipped": 44,
+    "unchanged_native_boundary_acceptance_verified": true
+  }
 }

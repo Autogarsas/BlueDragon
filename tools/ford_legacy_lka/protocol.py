@@ -15,7 +15,11 @@ VEHICLES = {
 # Include both candidate steering/speed sources. An address alone cannot identify
 # the layout: 0x76 has a different meaning in the two DBCs, for example.
 WATCH_IDS = frozenset((0x76, 0x7E, 0x82, 0x83, 0x85, 0x8A, 0x91, 0x165, 0x202, 0x204,
-                       0x217, 0x246, 0x3A8, 0x3CA, 0x3CC, 0x3D3, 0x3D6, 0x415))
+                       0x213, 0x217, 0x230, 0x246, 0x3A8, 0x3CA, 0x3CC, 0x3D3, 0x3D6, 0x415))
+
+# Exact required RX IDs for Ford safety parameter 40. Presence is only a
+# completeness check; full native replay also needs valid timing/counters.
+FUSION_NATIVE_RX_IDS = frozenset((0x415, 0x202, 0x91, 0x165, 0x204, 0x213, 0x76, 0x82, 0x3CC))
 LAYOUTS = ("fusion_2018", "ford_base")
 
 
@@ -184,7 +188,12 @@ class Session:
       status.append({"bus": bus, "samples": len(rows), "gaps_over_200ms": gaps,
                      "longest_observed_available_run_s": round(max(runs, default=0), 3),
                      "transitions": transitions})
+    present = {int(row['address'], 16) for row in self.frames
+               if row['stream'] == 'can' and row['bus'] == 0 and row['event_valid']}
+    missing = sorted(FUSION_NATIVE_RX_IDS - present)
     return {
+      "native_rx_missing": [hex(address) for address in missing],
+      "native_rx_complete": not missing and not self.truncated,
       "format": "bluedragon-ford-lka-evidence-v1", "vehicle_label": self.vehicle,
       "vehicle_label_is_not_fingerprinting": True, "reported_setup": VEHICLES[self.vehicle], "label": self.label,
       "capture_sends_can": False, "live_lka_mode_implemented": None,

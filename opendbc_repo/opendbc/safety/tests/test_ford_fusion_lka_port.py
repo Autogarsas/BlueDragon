@@ -145,5 +145,17 @@ class TestFordFusionLKAPortSafety(unittest.TestCase):
       self.assertTrue(self.safety.safety_tx_hook(libsafety_py.make_CANPacket(a,bus,b)),(i,command,wheel))
       reference,curvature=command.reference_raw,command.curvature_raw
 
+  def test_recorded_float_boundary_command_passes_unchanged_native_limits(self):
+    self.inputs(wheel=-.4)
+    self.assertTrue(self.tx(reference=-8))
+    for reference in range(-9, -44, -1):
+      self.now += 10_000
+      self.inputs(wheel=-.4)
+      self.assertTrue(self.tx(reference=reference))
+    self.now += 10_000
+    self.inputs(wheel=-.2)
+    # The corrected host emits -42: 38 numeric counts from SCCM -4.
+    self.assertTrue(self.tx(reference=-42))
+
 
 if __name__ == '__main__':unittest.main()

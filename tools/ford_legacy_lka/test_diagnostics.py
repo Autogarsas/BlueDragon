@@ -14,7 +14,8 @@ def event(kind, payload, t=0):
 class TestEngagementDiagnostics(unittest.TestCase):
   def test_pedal_cruise_and_button_evidence_survives_collection(self):
     session = Session("fusion_2019", "after")
-    state = NS(vEgo=19., steeringAngleDeg=0., steeringTorque=1.0625,
+    state = NS(vEgo=19., vEgoRaw=19., yawRate=0., standstill=False, gearShifter='drive',
+               steeringAngleDeg=0., steeringTorque=1.0625,
                steeringPressed=False, gasPressed=True, brakePressed=False,
                cruiseState=NS(enabled=True, available=True), vehicleSensorsInvalid=False,
                buttonEvents=[NS(type="setCruise", pressed=True)],

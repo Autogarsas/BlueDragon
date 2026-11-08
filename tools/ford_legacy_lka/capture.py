@@ -20,6 +20,14 @@ else:
 def metadata(root: Path) -> dict:
   result = {"captured_utc": datetime.now(timezone.utc).isoformat(),
             "identification_is_not_firmware_flash_verification": True}
+  try:
+    if __package__:
+      from .check_firmware import firmware_startup_status
+    else:
+      from check_firmware import firmware_startup_status
+    result['startup_firmware'] = firmware_startup_status(root)
+  except (OSError, ValueError, KeyError) as ex:
+    result['startup_firmware'] = dict(verified=False, reason=f'{type(ex).__name__}: {ex}')
   for name, args in (("git_commit", ["rev-parse", "HEAD"]), ("git_branch", ["branch", "--show-current"])):
     try:
       r = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, timeout=3)
@@ -54,6 +62,8 @@ def add_event(session: Session, event):
     c = event.carState
     session.add_state({"kind": kind, "mono_ns": int(event.logMonoTime), "valid": bool(event.valid),
                        "speed_mps": finite(c.vEgo), "steering_angle_deg": finite(c.steeringAngleDeg),
+                       "raw_speed_mps": finite(c.vEgoRaw), "yaw_rate_rad_s": finite(c.yawRate),
+                       "standstill": c.standstill, "gear": str(c.gearShifter),
                        "driver_torque": finite(c.steeringTorque), "driver_steering": c.steeringPressed,
                        "gas_pressed": c.gasPressed, "brake_pressed": c.brakePressed,
                        "cruise_enabled": c.cruiseState.enabled, "cruise_available": c.cruiseState.available,
@@ -184,6 +194,9 @@ def main(argv=None):
                     "frames": len(session.frames), "states": len(session.states),
                     "truncated": session.truncated, "errors": session.errors,
                     "states_truncated": session.states_truncated,
+                    "native_rx_complete": report['native_rx_complete'],
+                    "native_rx_missing": report['native_rx_missing'],
+                    "startup_firmware": info.get('startup_firmware'),
                     "installed_branch": info.get("git_branch"),
                     "loaded_profile": info.get("car_params", {}).get("profile"),
                     "cached_identification": info.get("car_params", {}).get("cached"),

@@ -41,6 +41,34 @@ def reference_values(normalized_pid, desired_angle_deg, speed, vehicle_model):
           "Lane_Curvature": min(max(curvature, -.03), .03), "Steer_Angle_Req": angle}
 
 
+def reference_envelope(request, wheel, previous, active_last):
+  """Existing numeric test envelope; these are not validated physical units.
+
+  Report the intersection without relaxing either constraint. If the measured
+  wheel moves beyond what one permitted step can track, stopping is required.
+  """
+  target = min(max(raw_reference(request), -MAX_REFERENCE_RAW), MAX_REFERENCE_RAW)
+  # SCCM is quantized in 0.1 increments. Compare on the existing 0.05/count
+  # numeric basis: decoding -0.2 can yield -0.1999999999998181, which must not
+  # turn the exact 38-count boundary into a spurious >1.9 stop.
+  wheel_raw = raw_reference(wheel)
+  tracking_lo = wheel_raw - 36
+  tracking_hi = wheel_raw + 36
+  target = min(max(target, tracking_lo), tracking_hi)
+  anchor = previous if active_last else wheel_raw
+  candidate = int(min(max(target, anchor - REFERENCE_STEP), anchor + REFERENCE_STEP))
+  # The final stop check uses 1.9, as before; 1.8 is the target margin.
+  feasible_lo = max(-MAX_REFERENCE_RAW, anchor - REFERENCE_STEP,
+                    wheel_raw - 38)
+  feasible_hi = min(MAX_REFERENCE_RAW, anchor + REFERENCE_STEP,
+                    wheel_raw + 38)
+  return dict(candidate_reference_raw=candidate, target_reference_raw=target,
+              reference_anchor_raw=anchor, reference_feasible_lo_raw=feasible_lo,
+              reference_feasible_hi_raw=feasible_hi, reference_feasible=feasible_lo <= feasible_hi,
+              numeric_tracking_error=(candidate - wheel_raw) * REFERENCE_SCALE,
+              numeric_tracking_error_raw=candidate - wheel_raw)
+
+
 @dataclass(frozen=True)
 class FusionLKACommand:
   action: int = 0
@@ -125,23 +153,22 @@ class FusionLegacyLKAPort:
     elif abs(wheel) > 5.5:
       reason = 'outside_reference_authority'
 
+    envelope = {}
+    candidate_curvature = None
+    measured_curvature = out.yawRate / speed if math.isfinite(speed) and speed > 0 else math.nan
     command = FusionLKACommand()
     if reason == 'active':
       values = reference_values(normalized, desired, speed, self.vm)
-      target_reference = min(max(raw_reference(values['Steer_Angle_Req']), -128), 128)
       # The numeric command basis follows the upstream encoder and SCCM input.
       # Both host and native Panda bound tracking error without a camera offset.
-      lo = math.ceil((wheel - 1.8) / .05)
-      hi = math.floor((wheel + 1.8) / .05)
-      target_reference = min(max(target_reference, lo), hi)
-      reference_anchor = self.reference_last if self.active_last else raw_reference(wheel)
-      reference = int(min(max(target_reference, reference_anchor - 1), reference_anchor + 1))
-      measured_curvature = out.yawRate / speed
+      envelope = reference_envelope(values['Steer_Angle_Req'], wheel, self.reference_last, self.active_last)
+      reference = envelope['candidate_reference_raw']
       target_curvature = min(max(values['Lane_Curvature'], measured_curvature - .0009), measured_curvature + .0009)
       target_curvature = min(max(raw_curvature(target_curvature), -300), 300)
       curvature_anchor = self.curvature_last if self.active_last else raw_curvature(measured_curvature)
       curvature = int(min(max(target_curvature, curvature_anchor - 1), curvature_anchor + 1))
-      if abs(reference) > 128 or abs(curvature) > 300 or abs(reference * .05 - wheel) > 1.9:
+      candidate_curvature = curvature
+      if abs(reference) > 128 or abs(curvature) > 300 or abs(envelope['numeric_tracking_error_raw']) > 38:
         reason = 'output_tracking_limit'
       else:
         command = FusionLKACommand(2, reference, curvature)
@@ -165,6 +192,14 @@ class FusionLegacyLKAPort:
                             requested_curvature=float(CC.actuators.curvature),
                             desired_angle_deg=desired if math.isfinite(desired) else None,
                             normalized_pid=normalized if math.isfinite(normalized) else None,
+                            yaw_rate_rad_s=float(out.yawRate) if math.isfinite(out.yawRate) else None,
+                            measured_curvature=measured_curvature if math.isfinite(measured_curvature) else None,
+                            driver_torque_nm=float(out.steeringTorque) if math.isfinite(out.steeringTorque) else None,
+                            driver_pressed=bool(out.steeringPressed),
+                            driver_torque_limit_nm=.9, measured_curvature_limit=.0015,
+                            numeric_tracking_limit=1.9, reference_scale=REFERENCE_SCALE,
+                            reference_units_validated=False, tx_blocked=blocked,
+                            candidate_curvature_raw=candidate_curvature, **envelope,
                             latched=self.latched, latch_reason=self.latch_reason,
                             reference_port='JDGarlock/5b5f7516', safety_param=40)
     return command

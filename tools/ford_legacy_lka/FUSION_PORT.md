@@ -102,3 +102,54 @@ regression checks both that path and the existing stock angle telemetry.
 Offline packet equivalence and native acceptance do not prove physical steering
 response or identify an EPS duration limit. Vehicle validation remains a
 separate closed-course step after pairing and startup verification.
+
+## 8 November host correction and recording audit
+
+The host-only count-boundary update retains the packaged
+`DEV-c785bdc5-DEBUG` H7 and signature prefix `5de6e8a8352bce37` unchanged.
+No native firmware code, driver override threshold, curvature authority,
+command slew, automatic rearm or timing limit changes are included.
+
+The 60-second capture contained 960 active requests across nine bursts, six
+Panda-rejected packets and a longest active request of about 2.869 seconds.
+It does not establish a rack duration timeout. The raw capture is private;
+the regression fixtures retain only the relevant numeric boundary inputs.
+
+One of two tracking stops was a floating-point comparison error: a candidate
+of -42 counts against SCCM -0.2 was evaluated as
+`abs(-2.1 - -0.1999999999998181) > 1.9`. Tracking and target margins are now
+expressed in integer counts (38 and 36 respectively), while slew stays at one
+count per update. The corrected boundary packet is accepted by the unchanged
+compiled native safety checks. The other recorded stop has no valid candidate
+inside the slew/tracking intersection and remains a latched stop. These
+numeric comparisons do not validate the physical interpretation of PID*87.
+
+Host telemetry now retains candidate reference, feasible bounds, tracking
+error, yaw, measured curvature, torque and the blocked-TX count. The recorder
+adds required native RX `0x213` (`DesiredTorqBrk`) and Park signal `0x230`.
+The earlier recorder omitted `0x213`, so exact native replay of its six
+rejections is not possible without inventing an input. The offline audit
+reports that missing evidence explicitly:
+
+```sh
+python3 -m tools.ford_legacy_lka.replay --input /data/capture.json
+```
+
+Capture metadata includes current-boot firmware startup evidence. Verification
+uses the latest current-boot connection entry and fails on a later mismatch;
+an old boot or a packaged signature alone cannot verify connected firmware.
+Host-only updates may reuse the same firmware across host commits.
+
+### Installation with ignition power
+
+Ignition can remain ON to power the comma. Select Park, disengage cruise and
+select offroad mode. The installer listens only: it requires fresh Ford Park,
+zero ABS speed with valid checksum/quality and advancing counters, cruise
+disengaged, and live Panda `noOutput / 0` with controls disallowed. It does
+not inspect ignition state. The parked proof must remain fresh for one second
+and is repeated before checkout and before reboot. Missing or stale data,
+moving/non-Park conditions or active controls stop installation. Tracked local
+edits are preserved by refusing them. Legacy LKA remains disabled after update.
+
+Vehicle verification of this update is pending. A recording cannot predict
+how the vehicle would respond after correcting a previously latched stop.

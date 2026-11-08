@@ -197,6 +197,21 @@ class TestFusionPortHost(unittest.TestCase):
     self.cc.enabled = True
     self.assertEqual(2, self.step().action)
 
+  def test_recorded_tracking_boundary_is_quantized_without_loosening_the_limit(self):
+    self.cc.actuators.torque = -.0274135023355484
+    self.cc.actuators.steeringAngleDeg = -1.304606318473816
+    self.cs.legacy_lka_feedback['wheel_angle_deg'] = -.1999999999998181
+    self.port.active_last = True
+    self.port.reference_last = -43
+    command = self.step()
+    self.assertEqual(2, command.action)
+    self.assertEqual(-42, command.reference_raw)
+    self.assertEqual(-38, self.port.diagnostics['numeric_tracking_error_raw'])
+    self.assertFalse(self.port.latched)
+    self.port.reference_last = -44
+    self.assertEqual(0, self.step().action)
+    self.assertEqual('output_tracking_limit', self.port.latch_reason)
+
   def test_driver_override_and_availability_do_not_automatically_rearm(self):
     self.step()
     self.cs.out.steeringTorque = 1.1
