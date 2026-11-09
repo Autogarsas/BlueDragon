@@ -72,8 +72,7 @@
     "tools/ford_legacy_lka/PSCM_COMMAND_CHAIN.md": "38f9a65f46ffbe7fd5d6e74f5b9e533b90d200fae679d03a471b007cb25dad75",
     "tools/ford_legacy_lka/internal_angle.py": "85da098cb74eb6f1f18595ff190e34f22e1a08279a9f1a4b30fb9fddf18c0eee",
     "tools/ford_legacy_lka/test_internal_angle.py": "7be907e8aa4fac6ee6a4fb5543265aa573b5e5fb5b47c440527b4e9125e03c97",
-    "tools/ford_legacy_lka/INTERNAL_ANGLE.md": "cbf67757d98f6d5cdcbbb1f21345364424b195ed0d3f2dbb37312e90b203d8f5",
-    ".github/workflows/ford-lka-option.yml": "e46ccefa8b63882967265ba068fd4ee3bf86094fe4457ac254161ae5fa6add42"
+    "tools/ford_legacy_lka/INTERNAL_ANGLE.md": "cbf67757d98f6d5cdcbbb1f21345364424b195ed0d3f2dbb37312e90b203d8f5"
   },
   "validation": {
     "tests_run": 595,
