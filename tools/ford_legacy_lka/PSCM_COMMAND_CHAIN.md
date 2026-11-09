@@ -141,3 +141,13 @@ A local attempt to run the entire passive module was limited by this laptop's
 missing native cereal import environment; the focused tests pass without
 substituting that environment. No native safety, H7, steering authority,
 driver override, ACC ownership or rearm behavior is changed.
+
+
+## 9 November continuation
+
+Factory physical assistance with comma disconnected is now user-confirmed.
+See [INTERNAL_ANGLE.md](INTERNAL_ANGLE.md) for the original-encoder-backed
+continuous internal-angle mapping and recorded companion replay. These close
+parts of the feedback investigation without an adapter setup dependency.
+The live controller and safety are unchanged; physical fork steering remains
+unestablished.

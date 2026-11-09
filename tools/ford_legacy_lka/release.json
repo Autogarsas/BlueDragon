@@ -1,5 +1,5 @@
 {
-  "version": "2.4-passive-pscm-chain",
+  "version": "2.5-internal-angle-evidence",
   "channel": "ford-fusion-lka-port",
   "base_commit": "a78a1d5462919e71c03bf24134dff9ba93b982bc",
   "build_source_commit": "c785bdc5f93e77b870d6d91a57fb67d874dea6b0",
@@ -69,7 +69,11 @@
     "tools/ford_legacy_lka/test_install.py": "7c685a62ad94682a700e2f9eee0cc4ab3e8967ec05fa4bfc9b9e31d34f862f6b",
     "tools/ford_legacy_lka/FUSION_ZERO_ACTUATION.md": "c0791f0e5460a2c6d495c43319cff94a3b78d4a838bb16fb85fcbc92f75e6f39",
     "tools/ford_legacy_lka/test_research.py": "0ffcff02f48bf22287030b2129500c3801f36f4039cacbeb8f38489f6a2fdc55",
-    "tools/ford_legacy_lka/PSCM_COMMAND_CHAIN.md": "ba070a080b56b5feddffe02b08106434f14983e9c51fc1442081941977807dbf"
+    "tools/ford_legacy_lka/PSCM_COMMAND_CHAIN.md": "38f9a65f46ffbe7fd5d6e74f5b9e533b90d200fae679d03a471b007cb25dad75",
+    "tools/ford_legacy_lka/internal_angle.py": "85da098cb74eb6f1f18595ff190e34f22e1a08279a9f1a4b30fb9fddf18c0eee",
+    "tools/ford_legacy_lka/test_internal_angle.py": "7be907e8aa4fac6ee6a4fb5543265aa573b5e5fb5b47c440527b4e9125e03c97",
+    "tools/ford_legacy_lka/INTERNAL_ANGLE.md": "cbf67757d98f6d5cdcbbb1f21345364424b195ed0d3f2dbb37312e90b203d8f5",
+    ".github/workflows/ford-lka-option.yml": "e46ccefa8b63882967265ba068fd4ee3bf86094fe4457ac254161ae5fa6add42"
   },
   "validation": {
     "tests_run": 595,
@@ -217,5 +221,19 @@
     "microcontroller_ordering_verified": false,
     "physical_assistance_verified": false,
     "native_regression_requirement": "Full existing Linux workflow for this commit; previous 595-test result is historical."
+  },
+  "passive_internal_angle": {
+    "mapping_strategy": "K2GC-14D003-AH",
+    "mapping_calibration": "K2GC-14D007-CD",
+    "original_encoder_did_cases": 14,
+    "original_unavailable_cases": 56,
+    "recorded_native_angle_packets": 6101,
+    "recorded_checksum_failures": 0,
+    "recorded_counter_advances": 6100,
+    "local_regression_methods_passed": 6,
+    "live_controller_changed": false,
+    "native_safety_changed": false,
+    "physical_assistance_verified": false,
+    "next_validation": "Compare broadcast reconstruction against already-recorded native DID 3302 reads before a feedback/controller change."
   }
 }
